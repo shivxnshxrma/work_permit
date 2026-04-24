@@ -11,6 +11,7 @@ from apps.accounts.models import User
 from apps.accounts.serializers import UserSerializer
 from .models import WorkPermit, Approver, ApprovalLog
 from .serializers import ApproverSerializer, WorkPermitListSerializer, WorkPermitDetailSerializer
+from .services import attach_permit_pdf
 
 
 def _is_super_admin(request):
@@ -364,6 +365,9 @@ def admin_permit_download(request, pk):
             {'detail': 'Only approved permits can be downloaded.'},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+    attach_permit_pdf(permit)
+    permit.save(update_fields=['pdf_file'])
 
     if not permit.pdf_file:
         return Response(

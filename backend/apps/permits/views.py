@@ -13,6 +13,7 @@ from .serializers import (
     build_next_daily_serial_number,
 )
 from apps.permits.models import Approver
+from apps.permits.services import attach_permit_pdf
 
 
 @api_view(['GET'])
@@ -76,6 +77,9 @@ def permit_download(request, pk):
             {'detail': 'Only approved permits can be downloaded.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    attach_permit_pdf(permit)
+    permit.save(update_fields=['pdf_file'])
 
     if not permit.pdf_file:
         return Response(

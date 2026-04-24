@@ -49,6 +49,68 @@ HRA_RADIO_GROUPS = {
     'hra3': ('radio_group_52gjgj', '/Value_sgkv', '/Value_lfhd'),
 }
 
+DEFAULT_TEXT_FONT = '/Helvetica'
+DEFAULT_TEXT_SIZE = 7
+FIELD_FONT_SIZES = {
+    'text_1ejpd': 5.5,
+    'text_2ngnk': 5.5,
+    'text_3zuxl': 5.5,
+    'text_4upun': 5.5,
+    'text_5fgwl': 5.5,
+    'text_6ryop': 5.5,
+    'text_7wzqo': 6.5,
+    'text_8bruh': 6.5,
+    'text_27npk': 6,
+    'text_30axrq': 6,
+    'text_31kzqf': 6,
+    'text_35farn': 5.5,
+    'text_36jelf': 5.5,
+    'text_37auuq': 5.5,
+    'text_38vunx': 5.5,
+    'text_39cbaj': 5.5,
+    'text_40cvth': 5.5,
+    'text_41vwgh': 5.5,
+    'text_42odpy': 5.5,
+    'text_45fczg': 6,
+    'text_46axtw': 6,
+    'text_47yqbw': 6,
+    'text_54udce': 6,
+    'text_55noyl': 6,
+    'text_56jiae': 6,
+    'text_57dnqg': 6,
+    'text_58tuch': 6,
+    'text_59gvxu': 6,
+    'text_60mcmy': 6,
+    'text_61dgnx': 6,
+    'text_62pfbd': 6,
+    'text_63sazg': 6,
+    'text_64bm': 6,
+    'text_65zlat': 6,
+    'text_87jjlf': 5.5,
+    'text_88maqv': 6,
+    'text_89irno': 6,
+    'text_90fo': 6,
+    'text_91geey': 6,
+    'text_92wgxs': 6,
+    'text_93xjyc': 6,
+    'text_94xbel': 6,
+    'text_95ffdu': 6,
+    'text_96jayo': 6,
+    'text_97lkvn': 6,
+    'text_98ltpc': 6,
+    'text_99zird': 6,
+    'text_100bmwo': 6,
+    'text_100fefy': 6,
+    'text_101enpe': 6,
+    'text_101ihmk': 6,
+    'text_102cnqh': 6,
+    'text_103eeyr': 6,
+    'text_104vwjd': 6,
+    'text_105viz': 6,
+    'text_106lenv': 6,
+    'text_107ecdr': 5,
+}
+
 
 def _date_text(value):
     if not value:
@@ -80,6 +142,11 @@ def _radio_value(choice, yes_value, no_value):
     return '/Off'
 
 
+def _text_value(field_name, value):
+    text = '' if value is None else str(value)
+    return (text, DEFAULT_TEXT_FONT, FIELD_FONT_SIZES.get(field_name, DEFAULT_TEXT_SIZE))
+
+
 def build_filled_permit_pdf(permit):
     if not PDF_TEMPLATE_PATH.exists():
         raise FileNotFoundError(f'PDF template not found at {PDF_TEMPLATE_PATH}')
@@ -94,66 +161,66 @@ def build_filled_permit_pdf(permit):
     valid_to_day, valid_to_month, valid_to_year = _date_parts(permit.valid_to)
 
     text_fields = {
-        'text_1ejpd': valid_from_day,
-        'text_2ngnk': valid_from_month,
-        'text_3zuxl': valid_from_year,
-        'text_4upun': valid_to_day,
-        'text_5fgwl': valid_to_month,
-        'text_6ryop': valid_to_year,
-        'text_7wzqo': permit.location or '',
-        'text_8bruh': permit.serial_number or '',
-        'text_99zird': form_data.get('hazards', ''),
-        'text_100fefy': form_data.get('empResp', ''),
-        'text_101enpe': form_data.get('precautions', ''),
-        'text_45fczg': form_data.get('trainName', ''),
-        'text_46axtw': form_data.get('trainDesig', ''),
-        'text_47yqbw': form_data.get('trainDept', ''),
-        'text_58tuch': form_data.get('initName', ''),
-        'text_59gvxu': form_data.get('hodUName', ''),
-        'text_60mcmy': form_data.get('ehsName', ''),
-        'text_64bm': form_data.get('hodFName', ''),
-        'text_61dgnx': _date_text(form_data.get('initDate', '')),
-        'text_62pfbd': _date_text(form_data.get('hodUDate', '')),
-        'text_63sazg': _date_text(form_data.get('ehsDate', '')),
-        'text_65zlat': _date_text(form_data.get('hodFDate', '')),
-        'text_102cnqh': form_data.get('legalName', ''),
-        'text_27npk': form_data.get('entrant', ''),
-        'text_30axrq': form_data.get('attendant', ''),
-        'text_31kzqf': form_data.get('supervisor', ''),
-        'text_103eeyr': form_data.get('shiftHandover', ''),
-        'text_104vwjd': form_data.get('personsNotified', ''),
-        'text_32ebsz': form_data.get('coName', ''),
-        'text_33niox': form_data.get('contactPerson', ''),
-        'text_34rkui': form_data.get('mobile', ''),
-        'text_35farn': _date_parts(form_data.get('startDate', ''))[0],
-        'text_36jelf': _date_parts(form_data.get('startDate', ''))[1],
-        'text_37auuq': _date_parts(form_data.get('startDate', ''))[2],
-        'text_40cvth': _date_parts(form_data.get('endDate', ''))[0],
-        'text_41vwgh': _date_parts(form_data.get('endDate', ''))[1],
-        'text_42odpy': _date_parts(form_data.get('endDate', ''))[2],
-        'text_38vunx': form_data.get('shiftStart', ''),
-        'text_39cbaj': form_data.get('shiftEnd', ''),
-        'text_87jjlf': str(form_data.get('manpower', '') or ''),
-        'text_105viz': form_data.get('workDept', ''),
-        'text_106lenv': form_data.get('exactLoc', ''),
-        'text_90fo': form_data.get('hraName', ''),
-        'text_91geey': _date_text(form_data.get('hraDate', '')),
-        'text_88maqv': form_data.get('ppeApprName', ''),
-        'text_89irno': _date_text(form_data.get('ppeApprDate', '')),
-        'text_54udce': form_data.get('copyIssuedBy', ''),
-        'text_55noyl': _date_text(form_data.get('issuedDate', '')),
-        'text_56jiae': form_data.get('conName', ''),
-        'text_57dnqg': _date_text(form_data.get('conDate', '')),
-        'text_92wgxs': form_data.get('repName', ''),
-        'text_93xjyc': _date_text(form_data.get('repDate', '')),
-        'text_94xbel': form_data.get('cmpContractor', ''),
-        'text_95ffdu': '',
-        'text_96jayo': form_data.get('cmpSiteIncharge', ''),
-        'text_97lkvn': '',
-        'text_98ltpc': '',
-        'text_100bmwo': '',
-        'text_101ihmk': '',
-        'text_107ecdr': '',
+        'text_1ejpd': _text_value('text_1ejpd', valid_from_day),
+        'text_2ngnk': _text_value('text_2ngnk', valid_from_month),
+        'text_3zuxl': _text_value('text_3zuxl', valid_from_year),
+        'text_4upun': _text_value('text_4upun', valid_to_day),
+        'text_5fgwl': _text_value('text_5fgwl', valid_to_month),
+        'text_6ryop': _text_value('text_6ryop', valid_to_year),
+        'text_7wzqo': _text_value('text_7wzqo', permit.location or form_data.get('location', '')),
+        'text_8bruh': _text_value('text_8bruh', permit.serial_number or form_data.get('sNo', '')),
+        'text_99zird': _text_value('text_99zird', form_data.get('hazards', '')),
+        'text_100fefy': _text_value('text_100fefy', form_data.get('empResp', '')),
+        'text_101enpe': _text_value('text_101enpe', form_data.get('precautions', '')),
+        'text_45fczg': _text_value('text_45fczg', form_data.get('trainName', '')),
+        'text_46axtw': _text_value('text_46axtw', form_data.get('trainDesig', '')),
+        'text_47yqbw': _text_value('text_47yqbw', form_data.get('trainDept', '')),
+        'text_58tuch': _text_value('text_58tuch', form_data.get('initName', '')),
+        'text_59gvxu': _text_value('text_59gvxu', form_data.get('hodUName', '')),
+        'text_60mcmy': _text_value('text_60mcmy', form_data.get('ehsName', '')),
+        'text_64bm': _text_value('text_64bm', form_data.get('hodFName', '')),
+        'text_61dgnx': _text_value('text_61dgnx', _date_text(form_data.get('initDate', ''))),
+        'text_62pfbd': _text_value('text_62pfbd', _date_text(form_data.get('hodUDate', ''))),
+        'text_63sazg': _text_value('text_63sazg', _date_text(form_data.get('ehsDate', ''))),
+        'text_65zlat': _text_value('text_65zlat', _date_text(form_data.get('hodFDate', ''))),
+        'text_102cnqh': _text_value('text_102cnqh', form_data.get('legalName', '')),
+        'text_27npk': _text_value('text_27npk', form_data.get('entrant', '')),
+        'text_30axrq': _text_value('text_30axrq', form_data.get('attendant', '')),
+        'text_31kzqf': _text_value('text_31kzqf', form_data.get('supervisor', '')),
+        'text_103eeyr': _text_value('text_103eeyr', form_data.get('shiftHandover', '')),
+        'text_104vwjd': _text_value('text_104vwjd', form_data.get('personsNotified', '')),
+        'text_32ebsz': _text_value('text_32ebsz', form_data.get('coName', '')),
+        'text_33niox': _text_value('text_33niox', form_data.get('contactPerson', '')),
+        'text_34rkui': _text_value('text_34rkui', form_data.get('mobile', '')),
+        'text_35farn': _text_value('text_35farn', _date_parts(form_data.get('startDate', ''))[0]),
+        'text_36jelf': _text_value('text_36jelf', _date_parts(form_data.get('startDate', ''))[1]),
+        'text_37auuq': _text_value('text_37auuq', _date_parts(form_data.get('startDate', ''))[2]),
+        'text_40cvth': _text_value('text_40cvth', _date_parts(form_data.get('endDate', ''))[0]),
+        'text_41vwgh': _text_value('text_41vwgh', _date_parts(form_data.get('endDate', ''))[1]),
+        'text_42odpy': _text_value('text_42odpy', _date_parts(form_data.get('endDate', ''))[2]),
+        'text_38vunx': _text_value('text_38vunx', form_data.get('shiftStart', '')),
+        'text_39cbaj': _text_value('text_39cbaj', form_data.get('shiftEnd', '')),
+        'text_87jjlf': _text_value('text_87jjlf', str(form_data.get('manpower', '') or '')),
+        'text_105viz': _text_value('text_105viz', form_data.get('workDept', '')),
+        'text_106lenv': _text_value('text_106lenv', form_data.get('exactLoc', '')),
+        'text_90fo': _text_value('text_90fo', form_data.get('hraName', '')),
+        'text_91geey': _text_value('text_91geey', _date_text(form_data.get('hraDate', ''))),
+        'text_88maqv': _text_value('text_88maqv', form_data.get('ppeApprName', '')),
+        'text_89irno': _text_value('text_89irno', _date_text(form_data.get('ppeApprDate', ''))),
+        'text_54udce': _text_value('text_54udce', form_data.get('copyIssuedBy', '')),
+        'text_55noyl': _text_value('text_55noyl', _date_text(form_data.get('issuedDate', ''))),
+        'text_56jiae': _text_value('text_56jiae', form_data.get('conName', '')),
+        'text_57dnqg': _text_value('text_57dnqg', _date_text(form_data.get('conDate', ''))),
+        'text_92wgxs': _text_value('text_92wgxs', form_data.get('repName', '')),
+        'text_93xjyc': _text_value('text_93xjyc', _date_text(form_data.get('repDate', ''))),
+        'text_94xbel': _text_value('text_94xbel', form_data.get('cmpContractor', '')),
+        'text_95ffdu': _text_value('text_95ffdu', form_data.get('cmpSiteIncharge', '')),
+        'text_96jayo': _text_value('text_96jayo', form_data.get('cmpPersonIssuing', '')),
+        'text_97lkvn': _text_value('text_97lkvn', form_data.get('cmpPersonIssuing', '')),
+        'text_98ltpc': _text_value('text_98ltpc', form_data.get('ppeOtherSpec1', '')),
+        'text_100bmwo': _text_value('text_100bmwo', form_data.get('ppeOtherSpec2', '')),
+        'text_101ihmk': _text_value('text_101ihmk', form_data.get('ppeOtherSpec2', '')),
+        'text_107ecdr': _text_value('text_107ecdr', form_data.get('precautions', '')),
     }
 
     button_fields = {}
@@ -173,7 +240,17 @@ def build_filled_permit_pdf(permit):
 
     merged_fields = {**text_fields, **button_fields}
     for page in writer.pages:
-        writer.update_page_form_field_values(page, merged_fields, auto_regenerate=False)
+        writer.update_page_form_field_values(
+            page,
+            merged_fields,
+            auto_regenerate=True,
+            flatten=True,
+        )
+
+    # Remove widget annotations after flattening so all values remain visible
+    # in PDF viewers that do not honor interactive form appearances.
+    writer.remove_annotations(['/Widget'])
+    writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
 
     output = BytesIO()
     writer.write(output)
