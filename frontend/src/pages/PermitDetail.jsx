@@ -1,0 +1,132 @@
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { XCircle, ArrowLeft, FileText, Download, Printer } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { permitsAPI } from '../api/client';
+import { Breadcrumb } from '../components/Layout';
+import { Spinner } from '../components/FormElements';
+import PermitStatusBadge from '../components/PermitStatusBadge';
+import PermitReviewContent, { PermitApprovalTimeline } from '../components/permit/PermitReviewContent';
+
+function canCancelPermit(status) {
+  return !['stage_1_rejected', 'stage_2_rejected', 'approved', 'cancelled'].includes(status);
+}
+
+export default function PermitDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [permit, setPermit] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    permitsAPI.detail(id)
+      .then(({ data }) => setPermit(data))
+      .catch(() => { toast.error('Permit not found.'); navigate('/dashboard'); })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const handleCancel = async () => {
+    if (!window.confirm('Cancel this permit?')) return;
+    try {
+      await permitsAPI.cancel(id);
+      toast.success('Permit cancelled.');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Could not cancel permit.');
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const { data } = await permitsAPI.download(id);
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${permit.serial_number || `permit_${permit.id}`}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to download permit PDF.');
+    }
+  };
+
+  const handlePrint = async () => {
+    try {
+      const { data } = await permitsAPI.download(id);
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+      const printWindow = window.open(url, '_blank');
+      if (!printWindow) {
+        toast.error('Unable to open print preview.');
+        return;
+      }
+      printWindow.addEventListener('load', () => {
+        printWindow.print();
+      });
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to print permit PDF.');
+    }
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-20"><Spinner size={8} /></div>
+  );
+  if (!permit) return null;
+
+  return (
+    <>
+      <Breadcrumb items={[
+        { to: '/dashboard', label: 'Dashboard' },
+        { label: `Permit ${permit.serial_number || permit.id}` },
+      ]} />
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-navy-50 rounded-xl flex items-center justify-center">
+            <FileText size={20} className="text-navy-700" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900">
+                {permit.serial_number || `Permit #${permit.id}`}
+              </h1>
+              <PermitStatusBadge status={permit.status} size="sm" />
+            </div>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Saved {new Date(permit.created_at).toLocaleString()} by {permit.owner_name}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => navigate('/dashboard')} className="btn-ghost btn-md">
+            <ArrowLeft size={14} /> Back
+          </button>
+          {/* {permit.status === 'approved' && (
+            <>
+              <button onClick={handleDownload} className="btn-secondary btn-md">
+                <Download size={14} /> Download PDF
+              </button>
+              <button onClick={handlePrint} className="btn-secondary btn-md">
+                <Printer size={14} /> Print
+              </button>
+            </>
+          )} */}
+          {/* {canCancelPermit(permit.status) && (
+            <button onClick={handleCancel} className="btn-danger btn-md">
+              <XCircle size={14} /> Cancel Permit
+            </button>
+          )} */}
+        </div>
+      </div>
+
+      <PermitReviewContent permit={permit} />
+      <div className="mt-4">
+        <PermitApprovalTimeline permit={permit} />
+      </div>
+    </>
+  );
+}

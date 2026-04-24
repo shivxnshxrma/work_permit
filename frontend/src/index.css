@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body { @apply bg-slate-50 text-slate-900 antialiased; }
+}
+
+@layer components {
+  /* ── Auth card ─────────────────────────────────────────────── */
+  .auth-card {
+    @apply bg-white rounded-2xl shadow-xl border border-slate-100 p-8 w-full max-w-md;
+  }
+
+  /* ── Form fields ───────────────────────────────────────────── */
+  .field-label {
+    @apply block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5;
+  }
+  .field-input {
+    @apply w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg bg-white
+           placeholder-slate-400 text-slate-900
+           focus:outline-none focus:ring-2 focus:ring-navy-700 focus:border-navy-700
+           transition-colors duration-150;
+  }
+  .field-input.error {
+    @apply border-red-400 focus:ring-red-400 focus:border-red-400;
+  }
+  .field-error {
+    @apply text-xs text-red-600 mt-1;
+  }
+
+  /* ── Buttons ───────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-lg
+           transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-navy-700 hover:bg-navy-800 active:scale-[.98] text-white
+           focus:ring-navy-700 shadow-sm;
+  }
+  .btn-secondary {
+    @apply btn bg-white hover:bg-slate-50 active:scale-[.98] text-slate-700
+           border border-slate-300 focus:ring-slate-400;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 hover:bg-red-700 active:scale-[.98] text-white
+           focus:ring-red-500;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100 active:scale-[.98]
+           focus:ring-slate-400;
+  }
+  .btn-sm  { @apply text-xs px-3 py-1.5; }
+  .btn-md  { @apply text-sm px-4 py-2; }
+  .btn-lg  { @apply text-sm px-6 py-3; }
+
+  /* ── Step tab ──────────────────────────────────────────────── */
+  .step-tab {
+    @apply flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-semibold
+           cursor-pointer transition-all duration-150 select-none;
+    border-color: theme('colors.slate.200');
+    color: theme('colors.slate.400');
+  }
+  .step-tab .num {
+    @apply w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold
+           transition-all duration-150;
+    background: theme('colors.slate.200');
+    color: theme('colors.slate.400');
+  }
+  .step-tab.active {
+    border-color: theme('colors.navy.700');
+    color: theme('colors.navy.700');
+    background: theme('colors.navy.50');
+  }
+  .step-tab.active .num {
+    background: theme('colors.navy.700');
+    color: #fff;
+  }
+  .step-tab.done {
+    border-color: theme('colors.green.500');
+    color: theme('colors.green.600');
+  }
+  .step-tab.done .num {
+    background: theme('colors.green.500');
+    color: #fff;
+  }
+
+  /* ── Card ──────────────────────────────────────────────────── */
+  .panel-card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4;
+  }
+  .panel-card-header {
+    @apply bg-navy-700 text-white px-5 py-3 flex items-center gap-2;
+  }
+  .panel-card-header h2 {
+    @apply text-xs font-bold uppercase tracking-widest;
+  }
+  .panel-card-body {
+    @apply p-5;
+  }
+
+  /* ── Section label ─────────────────────────────────────────── */
+  .section-label {
+    @apply text-sm font-bold uppercase tracking-[0.18em] text-slate-900
+           flex items-center gap-3 mt-6 mb-4;
+  }
+  .section-label::after {
+    content: '';
+    @apply flex-1 h-px bg-slate-200;
+  }
+
+  /* ── Permit list card ──────────────────────────────────────── */
+  .permit-card {
+    @apply bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md
+           hover:border-navy-300 transition-all duration-150 cursor-pointer;
+  }
+
+  /* ── Status badge ──────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+           text-[10px] font-semibold uppercase tracking-wide;
+  }
+  .badge-submitted { @apply bg-blue-100   text-blue-700; }
+  .badge-approved  { @apply bg-green-100  text-green-700; }
+  .badge-draft     { @apply bg-slate-100  text-slate-500; }
+  .badge-rejected  { @apply bg-red-100    text-red-600; }
+}
