@@ -1,5 +1,6 @@
 from django.http import FileResponse
 from django.utils.dateparse import parse_date
+from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -10,13 +11,6 @@ from apps.accounts.models import User
 from apps.accounts.serializers import UserSerializer
 from .models import WorkPermit, Approver, ApprovalLog
 from .serializers import ApproverSerializer, WorkPermitListSerializer, WorkPermitDetailSerializer
-
-
-# ── Admin Authentication ──────────────────────────────────────────────────
-SUPER_ADMIN_CREDENTIALS = {
-    'email': 'admin@dsgroup.com',
-    'password': 'SuperAdmin@123'
-}
 
 
 def _is_super_admin(request):
@@ -109,7 +103,7 @@ def admin_login(request):
     email = request.data.get('email')
     password = request.data.get('password')
 
-    if email != SUPER_ADMIN_CREDENTIALS['email'] or password != SUPER_ADMIN_CREDENTIALS['password']:
+    if email != settings.SUPER_ADMIN_EMAIL or password != settings.SUPER_ADMIN_PASSWORD:
         return Response(
             {'detail': 'Invalid admin credentials.'},
             status=status.HTTP_401_UNAUTHORIZED
@@ -117,7 +111,7 @@ def admin_login(request):
 
     # Get or create the super admin user
     user, _ = User.objects.get_or_create(
-        email=SUPER_ADMIN_CREDENTIALS['email'],
+        email=settings.SUPER_ADMIN_EMAIL,
         defaults={
             'username': 'admin',
             'first_name': 'Super',

@@ -19,6 +19,8 @@ pnpm-debug.log*
 .env.*
 !.env.example
 !.env.sample
+backend/.env
+!backend/.env.example
 
 # Root temp files
 .cache/
@@ -60,4 +62,3 @@ backend/staticfiles/
 # Build artifacts
 build/
 dist/
-
