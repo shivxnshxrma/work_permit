@@ -172,11 +172,10 @@ function _drawPage1(doc, d) {
   const fx0 = ML + 90, fcw = (LW - 90) / 4;
   ['A', 'B', 'C', 'D'].forEach((lbl, i) => {
     Vline(doc, fx0 + i * fcw, FR.y, FR.y + FR.h);
-    SF(doc, 5.5, 'bold'); TC(doc, 0, 0, 0); doc.text(lbl, fx0 + fcw / 2 + i * fcw, FR.y + FR.h / 2 + 0.6, { align: 'center' });
     // Display checkbox with checkmark if checked
     const isChecked = [d.fireA, d.fireB, d.fireC, d.fireD][i];
-    const checkboxSize = 3;
-    const boxX = fx0 + i * fcw + fcw / 2 - checkboxSize / 2;
+    const checkboxSize = 2.5;
+    const boxX = fx0 + i * fcw + 2;
     const boxY = FR.y + FR.h / 2 - checkboxSize / 2;
     // Draw checkbox border
     Rect(doc, boxX, boxY, checkboxSize, checkboxSize, false);
@@ -186,6 +185,8 @@ function _drawPage1(doc, d) {
       SF(doc, 6, 'bold');
       doc.text('✓', boxX + checkboxSize / 2, boxY + checkboxSize / 2 + 0.5, { align: 'center' });
     }
+    // Draw letter label to the right of checkbox
+    SF(doc, 5.5, 'bold'); TC(doc, 0, 0, 0); doc.text(lbl, boxX + checkboxSize + 2, FR.y + FR.h / 2 + 0.6);
   });
 
   /* hazards + company employee */
@@ -334,9 +335,9 @@ function _drawPage1(doc, d) {
   const TM = R.tm; Hline(doc, ML, TM.y, RX, TM.y); Hline(doc, ML, TM.y + TM.h, RX, TM.y + TM.h);
   Vline(doc, ML + lbw, TM.y, TM.y + TM.h); Vline(doc, dmx, TM.y, TM.y + TM.h);
   SF(doc, 5, 'bold'); TC(doc, 0, 0, 0); doc.text('Timing (Shifts)', ML + 1, TM.y + TM.h / 2 + 0.6);
-  doc.text('Start', cdx + 1, TM.y + TM.h / 2 + 0.6); dv(doc, d.shiftStart, cdx + 9, TM.y + TM.h / 2 + 0.6, 24, 6);
+  doc.text('Start', cdx + 1, TM.y + TM.h / 2 + 0.6); dv(doc, d.shiftStart, cdx + 9, TM.y + TM.h / 2 + 0.6, 24, 5);
   SF(doc, 5, 'normal'); doc.text('AM / PM', cdx + 35, TM.y + TM.h / 2 + 0.6);
-  SF(doc, 5, 'bold'); doc.text('End', dmx + 1, TM.y + TM.h / 2 + 0.6); dv(doc, d.shiftEnd, dmx + 8, TM.y + TM.h / 2 + 0.6, 22, 6);
+  SF(doc, 5, 'bold'); doc.text('End', dmx + 1, TM.y + TM.h / 2 + 0.6); dv(doc, d.shiftEnd, dmx + 8, TM.y + TM.h / 2 + 0.6, 22, 5);
   SF(doc, 5, 'normal'); doc.text('AM / PM', dmx + 32, TM.y + TM.h / 2 + 0.6);
 
   const MP = R.mp; Hline(doc, ML, MP.y, RX, MP.y); Hline(doc, ML, MP.y + MP.h, RX, MP.y + MP.h);

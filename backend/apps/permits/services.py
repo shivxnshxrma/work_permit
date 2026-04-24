@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject, TextStringObject
 
 
 logger = logging.getLogger(__name__)
@@ -30,27 +31,43 @@ FIRE_RISK_CHECKBOXES = {
     'fireD': 'checkbox_20lqtp',
 }
 
-PPE_RADIO_GROUPS = {
-    'Full Body Harness': ('radio_group_66blbc', '/Value_wem', '/Value_mzqw'),
-    'Ear Plug': ('radio_group_68vvuo', '/Value_pezs', '/Value_hpwp'),
-    'Goggle / Face shield': ('radio_group_70qehs', '/Value_gdtl', '/Value_ojxu'),
-    'Dust Mask': ('radio_group_72xpwi', '/Value_jwuu', '/Value_aahd'),
-    'Hand Gloves (Chemical/ Heat/ Cut resistant/ Cotton / Electrically insulated)': ('radio_group_74pfyr', '/Value_gsw', '/Value_druk'),
-    'Apron & Leg Guard': ('radio_group_75cyoi', '/Value_sviv', '/Value_xsur'),
-    'Heat Resistant suit': ('radio_group_76tpto', '/Value_kgxa', '/Value_wswy'),
-    'Fitness Certificate': ('radio_group_77crsk', '/Value_riid', '/Value_kb'),
-    'Any other (Pl. specify) 1.': ('radio_group_78yixm', '/Value_eeiq', '/Value_yspm'),
-    'Any other (Pl. specify) 2.': ('radio_group_79qoik', '/Value_mkat', '/Value_eubq'),
+PPE_CHECKBOX_GROUPS = {
+    'Full Body Harness': ('checkbox_99ngs', 'checkbox_100sndn'),
+    'Ear Plug': ('checkbox_101lduw', 'checkbox_102eebk'),
+    'Goggle / Face shield': ('checkbox_103bhds', 'checkbox_104luyq'),
+    'Dust Mask': ('checkbox_105xccf', 'checkbox_106ksyt'),
+    'Hand Gloves (Chemical/ Heat/ Cut resistant/ Cotton / Electrically insulated)': ('checkbox_107tzm', 'checkbox_108mytw'),
+    'Apron & Leg Guard': ('checkbox_109jdvf', 'checkbox_110cxgu'),
+    'Heat Resistant suit': ('checkbox_111haew', 'checkbox_112rvej'),
+    'Fitness Certificate': ('checkbox_113bapd', 'checkbox_114zdwn'),
+    'Any other (Pl. specify) 1.': ('checkbox_115tokr', 'checkbox_116zdqq'),
+    'Any other (Pl. specify) 2.': ('checkbox_117zncq', 'checkbox_118hubs'),
 }
 
-HRA_RADIO_GROUPS = {
-    'hra1': ('radio_group_48owfk', '/Value_acov', '/Value_qako'),
-    'hra2': ('radio_group_50vegv', '/Value_yvnf', '/Value_fcsa'),
-    'hra3': ('radio_group_52gjgj', '/Value_sgkv', '/Value_lfhd'),
+HRA_CHECKBOX_GROUPS = {
+    'hra1': ('checkbox_119jdox', 'checkbox_120kyrj'),
+    'hra2': ('checkbox_121zzyp', 'checkbox_122umte'),
+    'hra3': ('checkbox_123ajlg', 'checkbox_124psot'),
+}
+
+SHIFT_PERIOD_CHECKBOXES = {
+    'shiftStart': {
+        'AM': 'checkbox_127jlzs',
+        'PM': 'checkbox_128dogv',
+    },
+    'shiftEnd': {
+        'AM': 'checkbox_129xeyd',
+        'PM': 'checkbox_130rjzu',
+    },
 }
 
 DEFAULT_TEXT_FONT = '/Helvetica'
 DEFAULT_TEXT_SIZE = 7
+FIELD_FONTS = {
+    'text_125pdrj': '/Helv',
+    'text_126vnhj': '/Helv',
+}
+PROMOTE_CHILD_TEXT_FIELDS = {'text_125pdrj', 'text_126vnhj'}
 FIELD_FONT_SIZES = {
     'text_1ejpd': 5.5,
     'text_2ngnk': 5.5,
@@ -109,6 +126,8 @@ FIELD_FONT_SIZES = {
     'text_105viz': 6,
     'text_106lenv': 6,
     'text_107ecdr': 5,
+    'text_125pdrj': 5,
+    'text_126vnhj': 5,
 }
 
 
@@ -130,21 +149,96 @@ def _date_parts(value):
     return (str(value), '', '')
 
 
-def _checkbox_value(checked):
-    return '/Yes_ydso' if checked else '/Off'
+def _collect_checkbox_on_values(reader):
+    values = {}
+    for page in reader.pages:
+        for annot_ref in page.get('/Annots') or []:
+            annot = annot_ref.get_object()
+            if annot.get('/Subtype') != '/Widget':
+                continue
+
+            field_name = annot.get('/T')
+            parent = annot.get('/Parent')
+            if not field_name and parent:
+                field_name = parent.get_object().get('/T')
+            if not field_name:
+                continue
+
+            ap = annot.get('/AP')
+            normal = ap.get('/N') if ap else None
+            if not normal:
+                continue
+
+            on_values = [key for key in normal.keys() if key != '/Off']
+            if on_values:
+                values[field_name] = on_values[0]
+    return values
 
 
-def _radio_value(choice, yes_value, no_value):
+def _promote_child_text_widgets(writer, field_names):
+    for page in writer.pages:
+        for annot_ref in page.get('/Annots') or []:
+            annot = annot_ref.get_object()
+            parent = annot.get('/Parent')
+            if not parent:
+                continue
+
+            parent_obj = parent.get_object()
+            field_name = parent_obj.get('/T')
+            if field_name not in field_names:
+                continue
+
+            annot[NameObject('/FT')] = NameObject('/Tx')
+            annot[NameObject('/T')] = TextStringObject(field_name)
+            if '/V' not in annot:
+                annot[NameObject('/V')] = TextStringObject('')
+
+
+def _checkbox_value(checked, field_name, checkbox_on_values):
+    return checkbox_on_values.get(field_name, '/Off') if checked else '/Off'
+
+
+def _yes_no_checkboxes(choice, yes_field, no_field, checkbox_on_values):
+    values = {
+        yes_field: '/Off',
+        no_field: '/Off',
+    }
     if choice == 'Yes':
-        return yes_value
-    if choice == 'No':
-        return no_value
-    return '/Off'
+        values[yes_field] = _checkbox_value(True, yes_field, checkbox_on_values)
+    elif choice == 'No':
+        values[no_field] = _checkbox_value(True, no_field, checkbox_on_values)
+    return values
 
 
 def _text_value(field_name, value):
     text = '' if value is None else str(value)
-    return (text, DEFAULT_TEXT_FONT, FIELD_FONT_SIZES.get(field_name, DEFAULT_TEXT_SIZE))
+    return (
+        text,
+        FIELD_FONTS.get(field_name, DEFAULT_TEXT_FONT),
+        FIELD_FONT_SIZES.get(field_name, DEFAULT_TEXT_SIZE),
+    )
+
+
+def _normalize_time(value):
+    raw = (value or '').strip()
+    if not raw:
+        return '', ''
+
+    upper = raw.upper()
+    if upper.endswith('AM') or upper.endswith('PM'):
+        period = upper[-2:]
+        time_text = upper[:-2].strip()
+        return time_text, period
+
+    parts = raw.split(':')
+    if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+        hour = int(parts[0])
+        minute = parts[1][:2]
+        period = 'AM' if hour < 12 else 'PM'
+        display_hour = hour % 12 or 12
+        return f'{display_hour:02d}:{minute}', period
+
+    return raw, ''
 
 
 def build_filled_permit_pdf(permit):
@@ -156,9 +250,14 @@ def build_filled_permit_pdf(permit):
     writer = PdfWriter()
     writer.clone_document_from_reader(reader)
     writer.set_need_appearances_writer(True)
+    _promote_child_text_widgets(writer, PROMOTE_CHILD_TEXT_FIELDS)
+    checkbox_on_values = _collect_checkbox_on_values(reader)
 
     valid_from_day, valid_from_month, valid_from_year = _date_parts(permit.valid_from)
     valid_to_day, valid_to_month, valid_to_year = _date_parts(permit.valid_to)
+
+    start_shift_text, start_shift_period = _normalize_time(form_data.get('shiftStart', ''))
+    end_shift_text, end_shift_period = _normalize_time(form_data.get('shiftEnd', ''))
 
     text_fields = {
         'text_1ejpd': _text_value('text_1ejpd', valid_from_day),
@@ -198,8 +297,8 @@ def build_filled_permit_pdf(permit):
         'text_40cvth': _text_value('text_40cvth', _date_parts(form_data.get('endDate', ''))[0]),
         'text_41vwgh': _text_value('text_41vwgh', _date_parts(form_data.get('endDate', ''))[1]),
         'text_42odpy': _text_value('text_42odpy', _date_parts(form_data.get('endDate', ''))[2]),
-        'text_38vunx': _text_value('text_38vunx', form_data.get('shiftStart', '')),
-        'text_39cbaj': _text_value('text_39cbaj', form_data.get('shiftEnd', '')),
+        'text_38vunx': _text_value('text_38vunx', start_shift_text),
+        'text_39cbaj': _text_value('text_39cbaj', end_shift_text),
         'text_87jjlf': _text_value('text_87jjlf', str(form_data.get('manpower', '') or '')),
         'text_105viz': _text_value('text_105viz', form_data.get('workDept', '')),
         'text_106lenv': _text_value('text_106lenv', form_data.get('exactLoc', '')),
@@ -214,29 +313,36 @@ def build_filled_permit_pdf(permit):
         'text_92wgxs': _text_value('text_92wgxs', form_data.get('repName', '')),
         'text_93xjyc': _text_value('text_93xjyc', _date_text(form_data.get('repDate', ''))),
         'text_94xbel': _text_value('text_94xbel', form_data.get('cmpContractor', '')),
-        'text_95ffdu': _text_value('text_95ffdu', form_data.get('cmpSiteIncharge', '')),
+        'text_95ffdu': _text_value('text_95ffdu', ''),
         'text_96jayo': _text_value('text_96jayo', form_data.get('cmpPersonIssuing', '')),
-        'text_97lkvn': _text_value('text_97lkvn', form_data.get('cmpPersonIssuing', '')),
-        'text_98ltpc': _text_value('text_98ltpc', form_data.get('ppeOtherSpec1', '')),
-        'text_100bmwo': _text_value('text_100bmwo', form_data.get('ppeOtherSpec2', '')),
-        'text_101ihmk': _text_value('text_101ihmk', form_data.get('ppeOtherSpec2', '')),
-        'text_107ecdr': _text_value('text_107ecdr', form_data.get('precautions', '')),
+        'text_97lkvn': _text_value('text_97lkvn', ''),
+        'text_98ltpc': _text_value('text_98ltpc', form_data.get('contactPerson', '')),
+        'text_100bmwo': _text_value('text_100bmwo', form_data.get('mobile', '')),
+        'text_101ihmk': _text_value('text_101ihmk', ''),
+        'text_107ecdr': _text_value('text_107ecdr', permit.location or form_data.get('exactLoc', '')),
+        'text_125pdrj': _text_value('text_125pdrj', form_data.get('ppeOtherSpec1', '')),
+        'text_126vnhj': _text_value('text_126vnhj', form_data.get('ppeOtherSpec2', '')),
     }
 
     button_fields = {}
     selected_work_types = set(form_data.get('workTypes', []))
     for work_type, field_name in WORK_TYPE_CHECKBOXES.items():
-        button_fields[field_name] = _checkbox_value(work_type in selected_work_types)
+        button_fields[field_name] = _checkbox_value(work_type in selected_work_types, field_name, checkbox_on_values)
 
     for form_key, field_name in FIRE_RISK_CHECKBOXES.items():
-        button_fields[field_name] = _checkbox_value(bool(form_data.get(form_key)))
+        button_fields[field_name] = _checkbox_value(bool(form_data.get(form_key)), field_name, checkbox_on_values)
 
-    for form_key, (field_name, yes_value, no_value) in HRA_RADIO_GROUPS.items():
-        button_fields[field_name] = _radio_value(form_data.get(form_key), yes_value, no_value)
+    for form_key, (yes_field, no_field) in HRA_CHECKBOX_GROUPS.items():
+        button_fields.update(_yes_no_checkboxes(form_data.get(form_key), yes_field, no_field, checkbox_on_values))
 
     ppe_values = form_data.get('ppe', {})
-    for ppe_key, (field_name, yes_value, no_value) in PPE_RADIO_GROUPS.items():
-        button_fields[field_name] = _radio_value(ppe_values.get(ppe_key), yes_value, no_value)
+    for ppe_key, (yes_field, no_field) in PPE_CHECKBOX_GROUPS.items():
+        button_fields.update(_yes_no_checkboxes(ppe_values.get(ppe_key), yes_field, no_field, checkbox_on_values))
+
+    for shift_key, period_fields in SHIFT_PERIOD_CHECKBOXES.items():
+        active_period = start_shift_period if shift_key == 'shiftStart' else end_shift_period
+        for period_label, field_name in period_fields.items():
+            button_fields[field_name] = _checkbox_value(active_period == period_label, field_name, checkbox_on_values)
 
     merged_fields = {**text_fields, **button_fields}
     for page in writer.pages:
