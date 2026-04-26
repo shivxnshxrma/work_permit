@@ -1,9 +1,9 @@
 # DS Group — Work Permit System
 
 Full-stack web application: React frontend + Django REST backend.
-Users register/login with JWT auth, fill a 6-step work permit form,
-the PDF is generated client-side with jsPDF, then saved to the
-database alongside the user's account.
+Users register/login, fill a multi-step work permit form, the PDF is
+generated server-side from a template, and routed through a two-stage
+approval workflow. Auth is handled via secure HttpOnly cookies.
 
 ---
 
@@ -11,51 +11,87 @@ database alongside the user's account.
 
 ```
 workpermit/
-├── backend/                   # Django REST API
+├── backend/                       # Django REST API
 │   ├── apps/
-│   │   ├── accounts/          # Custom User model + JWT auth
-│   │   └── permits/           # WorkPermit model + CRUD + file upload
-│   ├── config/                # settings, urls, wsgi
-│   ├── media/                 # Uploaded PDFs (gitignored)
+│   │   ├── accounts/              # Custom User model, JWT cookie auth, password reset
+│   │   │   ├── authentication.py  # JWTCookieAuthentication — reads token from cookie
+│   │   │   ├── models.py          # User, PasswordResetToken
+│   │   │   ├── serializers.py     # RegisterSerializer, UserSerializer, CustomTokenSerializer
+│   │   │   └── views.py           # Login, Register, Logout, Me, ForgotPassword, ResetPassword
+│   │   └── permits/               # Permit lifecycle + approval workflow
+│   │       ├── models.py          # WorkPermit, Approver, ApprovalLog
+│   │       ├── serializers.py     # WorkPermit CRUD + serial number generation
+│   │       ├── services.py        # PDF template filling (pypdf) + email dispatch
+│   │       ├── views.py           # Employee permit CRUD + download
+│   │       ├── approver_views.py  # Approver queue, approve/reject actions
+│   │       └── admin_views.py     # Admin login, approver mgmt, dashboard stats
+│   ├── config/                    # settings, urls, wsgi
+│   ├── media/                     # Generated PDFs (gitignored)
 │   ├── manage.py
 │   └── requirements.txt
 │
-└── frontend/                  # React + Vite + Tailwind
+└── frontend/                      # React + Vite + Tailwind CSS
     └── src/
-        ├── api/client.js      # Axios + JWT interceptors
-        ├── store/authStore.js # Zustand auth state
-        ├── utils/pdfRenderer.js  # jsPDF permit drawing engine
+        ├── api/client.js          # Axios + cookie-based JWT + refresh queue
+        ├── store/authStore.js     # Zustand auth state (user profile only)
+        ├── utils/
+        │   ├── cn.js              # clsx + tailwind-merge utility
+        │   └── constants.js       # Shared storage keys + app constants
         ├── components/
-        │   ├── Layout.jsx     # AppLayout, ProtectedRoute, Breadcrumb
-        │   └── FormElements.jsx # Field, YesNo, CheckPill, StatusBadge ...
+        │   ├── Layout.jsx         # AppLayout, ProtectedRoute, AdminProtectedRoute, Breadcrumb
+        │   ├── FormElements.jsx   # Field, YesNo, CheckPill, StatusBadge, Spinner, EmptyState
+        │   ├── ApproversManager.jsx  # Admin: manage stage 1 & 2 approvers
+        │   └── admin/
+        │       └── AdminPermitStatsExplorer.jsx  # Admin permit stats + drill-down
         └── pages/
             ├── Login.jsx
+            ├── AdminLogin.jsx
             ├── Register.jsx
-            ├── Dashboard.jsx  # List of user's saved permits
-            ├── PermitForm.jsx # 6-step form → PDF → POST to API
+            ├── Dashboard.jsx       # Employee permit list
+            ├── AdminDashboard.jsx  # Admin stats, approver overview, approver mgmt
+            ├── PermitForm.jsx      # Multi-step permit form → POST to API
             └── PermitDetail.jsx
 ```
 
 ---
 
-## Data Flow
+## Authentication
+
+JWT tokens are stored exclusively in **HttpOnly, Secure, SameSite=Lax cookies** — never in `localStorage` or `sessionStorage`. Only the non-sensitive user profile object (name, email, roles) is stored in `localStorage` via Zustand.
 
 ```
-User fills PermitForm (6 steps)
+Login → Server sets HttpOnly cookies: access (8h), refresh (30d)
+              ↓
+All API requests: cookies sent automatically (withCredentials: true)
+              ↓
+On 401 → POST /api/auth/refresh/ (reads refresh cookie server-side)
+              ↓
+New access cookie issued. Concurrent requests are queued + replayed.
+              ↓
+If refresh expired → 'auth-error' event → Zustand clears state → redirect /login
+```
+
+---
+
+## Data Flow — Permit Creation
+
+```
+User fills PermitForm (multi-step)
         ↓
-buildPermitPDF(formData)        — jsPDF draws entire A4 form in browser
+POST /api/permits/create/          — JSON form_data
         ↓
-doc.output('blob')              — PDF as binary Blob, ~80KB
+Django serializer validates + saves WorkPermit row
         ↓
-FormData { pdf_file, form_data, serial_number, ... }
+services.py fills PDF template (pypdf) server-side
         ↓
-POST /api/permits/create/       — multipart/form-data
+PDF saved to media/permits/<user_id>/<uuid>.pdf
         ↓
-Django receives file + JSON     — saves PDF to media/permits/<user_id>/
+Permit enters Stage 1 approval queue automatically
         ↓
-WorkPermit row in SQLite        — user_id FK, pdf_file path, form_data JSON
+Stage 1 approver → approves → Stage 2
+Stage 2 approver → final approves → APPROVED + email sent
         ↓
-Dashboard / PermitDetail        — GET /api/permits/ — list + download
+Employee can download approved PDF
 ```
 
 ---
@@ -78,14 +114,12 @@ SECRET_KEY=your-secret-key-change-this-in-production
 DEBUG=True
 ALLOWED_HOSTS=localhost 127.0.0.1
 CORS_ALLOWED_ORIGINS=http://localhost:5173 http://localhost:3000
+SUPER_ADMIN_EMAIL=admin@yourcompany.com
+SUPER_ADMIN_PASSWORD=your-secure-admin-password
 EOF
 
 # Run migrations
-python manage.py makemigrations accounts permits
 python manage.py migrate
-
-# Create superuser (optional)
-python manage.py createsuperuser
 
 # Start dev server
 python manage.py runserver
@@ -112,38 +146,45 @@ npm run dev
 ## API Endpoints
 
 ### Auth
+| Method | URL | Auth | Description |
+|--------|-----|------|-------------|
+| POST | /api/auth/register/ | Public | Register + set auth cookies |
+| POST | /api/auth/login/ | Public | Login + set auth cookies |
+| POST | /api/auth/refresh/ | Cookie | Rotate tokens via cookie |
+| POST | /api/auth/logout/ | Cookie | Blacklist refresh + clear cookies |
+| GET/PATCH | /api/auth/me/ | Cookie | Get/update current user profile |
+| GET | /api/auth/users/ | Admin | List all users |
+| POST | /api/auth/forgot-password/ | Public | Request password reset |
+| POST | /api/auth/reset-password/ | Public | Reset password with token |
+
+### Permits (Employee)
 | Method | URL | Description |
 |--------|-----|-------------|
-| POST | /api/auth/register/ | Register → returns access + refresh + user |
-| POST | /api/auth/login/    | Login → returns access + refresh + user |
-| POST | /api/auth/refresh/  | Refresh access token |
-| POST | /api/auth/logout/   | Blacklist refresh token |
-| GET  | /api/auth/me/       | Get current user profile |
-| PATCH| /api/auth/me/       | Update current user profile |
+| GET | /api/permits/ | List current user's permits |
+| POST | /api/permits/create/ | Create permit + generate PDF |
+| GET | /api/permits/:id/ | Get permit detail + form_data |
+| DELETE | /api/permits/:id/ | Cancel permit |
+| GET | /api/permits/:id/download/ | Download approved PDF |
 
-### Permits (all require Bearer token)
+### Approvals (Approvers)
 | Method | URL | Description |
 |--------|-----|-------------|
-| GET    | /api/permits/         | List current user's permits |
-| POST   | /api/permits/create/  | Create permit + upload PDF |
-| GET    | /api/permits/:id/     | Get permit detail + form_data |
-| PATCH  | /api/permits/:id/     | Update permit fields |
-| DELETE | /api/permits/:id/     | Delete permit + PDF file |
-| GET    | /api/permits/:id/download/ | Stream PDF file |
+| GET | /api/permits/approvals/summary/ | Approver dashboard stats |
+| GET | /api/permits/approvals/pending/ | Permits awaiting action |
+| GET | /api/permits/approvals/:id/ | Permit detail for review |
+| POST | /api/permits/approvals/:id/approve/ | Approve permit |
+| POST | /api/permits/approvals/:id/reject/ | Reinitiate permit |
 
----
-
-## JWT Flow
-
-```
-Login → { access (8h), refresh (30d), user: {...} }
-                ↓
-All API requests: Authorization: Bearer <access>
-                ↓
-On 401 → POST /api/auth/refresh/ with refresh token
-                ↓
-If refresh expired → localStorage.clear() → redirect /login
-```
+### Admin
+| Method | URL | Description |
+|--------|-----|-------------|
+| POST | /api/permits/admin/login/ | Admin login + set cookies |
+| GET/POST | /api/permits/admin/approvers/ | List / add approvers |
+| PATCH/DELETE | /api/permits/admin/approvers/:id/ | Update / remove approver |
+| GET | /api/permits/admin/dashboard/ | Stats + approver lists |
+| GET | /api/permits/admin/permits/ | All permits (filterable) |
+| GET | /api/permits/admin/permits/:id/ | Permit detail |
+| GET | /api/permits/admin/permits/:id/download/ | Download any approved PDF |
 
 ---
 
@@ -157,29 +198,55 @@ department, employee_id, phone, created_at, updated_at
 
 ### permits_workpermit
 ```
-id                  — auto PK
-user_id             — FK → accounts_user
-serial_number       — indexed
-location
-valid_from          — date
-valid_to            — date
-form_data           — JSONField (complete form payload)
-pdf_file            — FileField → media/permits/<user_id>/<uuid>.pdf
-status              — draft | submitted | approved | rejected
-created_at
-updated_at
+id, user_id (FK), serial_number (indexed), location,
+valid_from, valid_to, form_data (JSON), pdf_file,
+status, current_stage, rejection_reason,
+created_at, updated_at
 ```
+
+### permits_approver
+```
+id, user_id (FK), stage (1|2), is_admin,
+requires_reason_on_approval, created_at
+```
+
+### permits_approvallog
+```
+id, permit_id (FK), approver_id (FK), stage, action, reason, created_at
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend Framework | React 18 + Vite |
+| Styling | Tailwind CSS 3 |
+| State Management | Zustand |
+| HTTP Client | Axios (cookie-based, withCredentials) |
+| Icons | Lucide React |
+| Notifications | React Hot Toast |
+| Backend Framework | Django 4.2 + Django REST Framework |
+| Auth | SimpleJWT (HttpOnly cookies) |
+| PDF Generation | pypdf (server-side template filling) |
+| Database | SQLite (dev) → PostgreSQL (production) |
+| CORS | django-cors-headers |
 
 ---
 
 ## Production Checklist
 
 - [ ] Set `DEBUG=False` in `.env`
-- [ ] Set a strong `SECRET_KEY`
+- [ ] Set a strong `SECRET_KEY` (50+ chars)
+- [ ] Set `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD` (no defaults)
 - [ ] Switch `DATABASES` to PostgreSQL
-- [ ] Set `CORS_ALLOWED_ORIGINS` to your frontend domain
-- [ ] Configure Django to serve `MEDIA_ROOT` via nginx / S3
-- [ ] Set `SIMPLE_JWT.ACCESS_TOKEN_LIFETIME` as appropriate
+- [ ] Set `CORS_ALLOWED_ORIGINS` to your frontend domain only
+- [ ] Add `rest_framework_simplejwt.token_blacklist` and set `BLACKLIST_AFTER_ROTATION=True`
+- [ ] Configure media file serving via Nginx or cloud storage (S3/GCS)
+- [ ] Add Whitenoise for static files (`pip install whitenoise`)
 - [ ] Run `python manage.py collectstatic`
 - [ ] Serve Django with `gunicorn config.wsgi`
-- [ ] Enable HTTPS
+- [ ] Enable HTTPS + set security headers in settings
+- [ ] Configure email backend (SMTP) for password reset + permit approval emails
+- [ ] Set `FINAL_PERMIT_EMAIL` for approved permit notifications
