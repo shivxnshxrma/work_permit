@@ -1,10 +1,11 @@
 import { Info } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 // Controlled input with label + error
 export function Field({ label, error, required, className = '', children, ...props }) {
   const id = props.id || props.name;
   return (
-    <div className={className}>
+    <div className={cn("space-y-1.5", className)}>
       {label && (
         <label htmlFor={id} className="field-label">
           {label} {required && <span className="text-red-500 normal-case">*</span>}
@@ -13,11 +14,14 @@ export function Field({ label, error, required, className = '', children, ...pro
       {children || (
         <input
           id={id}
-          className={`field-input ${error ? 'error' : ''}`}
+          className={cn(
+            "field-input transition-all duration-200 focus:ring-2 focus:ring-navy-500/20 hover:border-navy-300",
+            error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
+          )}
           {...props}
         />
       )}
-      {error && <p className="field-error">{error}</p>}
+      {error && <p className="field-error animate-in fade-in slide-in-from-top-1">{error}</p>}
     </div>
   );
 }
@@ -26,7 +30,7 @@ export function Field({ label, error, required, className = '', children, ...pro
 export function FieldGrid({ cols = 2, children, className = '' }) {
   const colMap = { 1: 'grid-cols-1', 2: 'grid-cols-1 sm:grid-cols-2', 3: 'grid-cols-1 sm:grid-cols-3', 4: 'grid-cols-2 sm:grid-cols-4' };
   return (
-    <div className={`grid ${colMap[cols] || 'grid-cols-2'} gap-4 ${className}`}>
+    <div className={cn(`grid ${colMap[cols] || 'grid-cols-2'} gap-5`, className)}>
       {children}
     </div>
   );
@@ -41,13 +45,14 @@ export function YesNo({ id, value, onChange }) {
           key={opt}
           type="button"
           onClick={() => onChange(value === opt ? '' : opt)}
-          className={`px-4 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+          className={cn(
+            "px-5 py-2 rounded-xl border text-sm font-semibold transition-all duration-200 active:scale-95",
             value === opt
               ? opt === 'Yes'
-                ? 'bg-green-100 border-green-500 text-green-700'
-                : 'bg-red-100 border-red-500 text-red-600'
-              : 'bg-white border-slate-300 text-slate-500 hover:border-slate-400'
-          }`}
+                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm shadow-emerald-500/20'
+                : 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm shadow-rose-500/20'
+              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
+          )}
         >
           {opt}
         </button>
@@ -59,15 +64,15 @@ export function YesNo({ id, value, onChange }) {
 // Checkbox pill
 export function CheckPill({ label, checked, onChange }) {
   return (
-    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs
-                       font-medium cursor-pointer transition-all select-none ${
+    <label className={cn(
+      "flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium cursor-pointer transition-all duration-200 select-none",
       checked
-        ? 'border-navy-700 bg-navy-50 text-navy-700'
-        : 'border-slate-200 text-slate-500 hover:border-navy-300'
-    }`}>
+        ? 'border-navy-600 bg-navy-50 text-navy-800 shadow-sm shadow-navy-500/10'
+        : 'border-slate-200 text-slate-600 hover:border-navy-300 hover:bg-slate-50'
+    )}>
       <input
         type="checkbox"
-        className="w-4 h-4 accent-navy-700 rounded border-slate-300"
+        className="w-4 h-4 accent-navy-600 rounded border-slate-300 transition-all duration-200"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
@@ -78,7 +83,7 @@ export function CheckPill({ label, checked, onChange }) {
 
 // Section separator
 export function SectionLabel({ children }) {
-  return <div className="section-label text-navy-700">{children}</div>;
+  return <div className="section-label text-navy-800 font-semibold tracking-tight">{children}</div>;
 }
 
 export function InfoHint({ text }) {
@@ -117,16 +122,17 @@ export function Spinner({ size = 5 }) {
 // Status badge
 export function StatusBadge({ status }) {
   const map = {
-    approved:  'badge-approved',
-    draft:     'badge-draft',
-    stage_1_rejected:  'badge-rejected',
-    stage_2_rejected:  'badge-rejected',
+    approved:  'bg-emerald-100 text-emerald-800 border-emerald-200',
+    draft:     'bg-slate-100 text-slate-700 border-slate-200',
+    stage_1_rejected:  'bg-rose-100 text-rose-800 border-rose-200',
+    stage_2_rejected:  'bg-rose-100 text-rose-800 border-rose-200',
+    pending:   'bg-amber-100 text-amber-800 border-amber-200'
   };
   return (
-    <span className={`badge ${map[status] || 'badge-draft'}`}>
+    <span className={cn("px-2.5 py-1 rounded-full text-xs font-semibold border", map[status] || map['draft'])}>
       {status === 'stage_1_rejected' ? 'Stage 1 Reinitiated' :
        status === 'stage_2_rejected' ? 'Stage 2 Reinitiated' :
-       map[status]?.replace('badge-', '').toUpperCase() || status.toUpperCase()}
+       status.toUpperCase()}
     </span>
   );
 }

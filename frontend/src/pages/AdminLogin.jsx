@@ -36,7 +36,7 @@ export default function AdminLogin() {
         email: form.email,
         password: form.password,
       });
-      persistSession(response.data.access, response.data.refresh, response.data.user);
+      persistSession(response.data.user);
       localStorage.setItem('admin_id', response.data.user_id);
       localStorage.setItem('admin_email', response.data.email);
       toast.success('Admin access granted!');
@@ -51,22 +51,23 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-black bg-opacity-50 backdrop-blur-sm
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-navy-900 to-black
                     flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Brand */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <span className="w-10 h-10 bg-white rounded-lg flex items-center justify-center
-                           font-bold text-red-600 text-sm">DS</span>
-          <div>
-            <p className="text-white font-semibold text-sm">DS Group</p>
-            <p className="text-red-100 text-xs">Admin Dashboard</p>
+        <div className="flex flex-col items-center justify-center gap-2 mb-10">
+          <div className="w-14 h-14 bg-gradient-to-tr from-rose-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/30">
+            <Lock className="text-white" size={24} />
+          </div>
+          <div className="text-center mt-2">
+            <h2 className="text-2xl font-bold tracking-tight text-white">Admin Portal</h2>
+            <p className="text-slate-400 text-sm mt-1">Secure Dashboard Access</p>
           </div>
         </div>
 
         {/* Card */}
         <div className="auth-card">
-          <div className="mb-6">
+          <div className="mb-6 text-center">
             <h1 className="text-xl font-bold text-slate-900">Admin Access</h1>
             <p className="text-sm text-slate-500 mt-1">Enter admin credentials to continue.</p>
           </div>

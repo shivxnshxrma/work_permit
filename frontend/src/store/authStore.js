@@ -1,19 +1,25 @@
 import { create } from 'zustand';
 import { authAPI } from '../api/client';
+import { STORAGE_KEYS } from '../utils/constants';
+
+const safeGetUser = () => {
+  try {
+    const userStr = localStorage.getItem(STORAGE_KEYS.USER);
+    return userStr ? JSON.parse(userStr) : null;
+  } catch {
+    return null;
+  }
+};
 
 const useAuthStore = create((set, get) => ({
-  user:    JSON.parse(localStorage.getItem('user') || 'null'),
-  access:  localStorage.getItem('access')  || null,
-  refresh: localStorage.getItem('refresh') || null,
+  user: safeGetUser(),
   loading: false,
   error:   null,
 
   // ── Helpers ─────────────────────────────────────────────────
-  _persist(access, refresh, user) {
-    localStorage.setItem('access',  access);
-    localStorage.setItem('refresh', refresh);
-    localStorage.setItem('user',    JSON.stringify(user));
-    set({ access, refresh, user, error: null });
+  _persist(user) {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    set({ user, error: null });
   },
 
   // ── Actions ──────────────────────────────────────────────────
@@ -35,7 +41,7 @@ const useAuthStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const { data } = await authAPI.login({ email, password });
-      get()._persist(data.access, data.refresh, data.user);
+      get()._persist(data.user);
       return { ok: true };
     } catch (e) {
       const error = e.response?.data || { detail: 'Login failed.' };
@@ -47,10 +53,9 @@ const useAuthStore = create((set, get) => ({
   },
 
   async logout() {
-    const refresh = get().refresh;
-    try { await authAPI.logout(refresh); } catch { /* ignore */ }
-    localStorage.clear();
-    set({ user: null, access: null, refresh: null });
+    try { await authAPI.logout(); } catch { /* ignore */ }
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    set({ user: null });
   },
 
   async refreshProfile() {
@@ -61,7 +66,7 @@ const useAuthStore = create((set, get) => ({
     } catch { /* token invalid — leave state as-is */ }
   },
 
-  isAuthenticated: () => !!get().access,
+  isAuthenticated: () => !!get().user,
 }));
 
 export default useAuthStore;

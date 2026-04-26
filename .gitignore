@@ -62,3 +62,6 @@ backend/staticfiles/
 # Build artifacts
 build/
 dist/
+
+#custom
+*.txt

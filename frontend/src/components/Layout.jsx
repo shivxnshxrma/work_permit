@@ -8,19 +8,19 @@ import useAuthStore from '../store/authStore';
 
 // ── Route guard ───────────────────────────────────────────────────────────
 export function ProtectedRoute() {
-  const access = useAuthStore((s) => s.access);
-  return access ? <Outlet /> : <Navigate to="/login" replace />;
+  const user = useAuthStore((s) => s.user);
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
 export function GuestRoute() {
-  const access = useAuthStore((s) => s.access);
-  return access ? <Navigate to="/dashboard" replace /> : <Outlet />;
+  const user = useAuthStore((s) => s.user);
+  return user ? <Navigate to="/dashboard" replace /> : <Outlet />;
 }
 
 export function AdminProtectedRoute() {
-  const access = useAuthStore((s) => s.access);
+  const user = useAuthStore((s) => s.user);
   const hasAdminSession = typeof window !== 'undefined' && !!localStorage.getItem('admin_id');
-  return access && hasAdminSession ? <Outlet /> : <Navigate to="/admin/login" replace />;
+  return user && hasAdminSession ? <Outlet /> : <Navigate to="/admin/login" replace />;
 }
 
 export function AdminGuestRoute() {

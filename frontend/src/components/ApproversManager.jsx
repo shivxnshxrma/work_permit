@@ -123,56 +123,67 @@ export default function ApproversManager({ onApproverChange }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Add Approver Form */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Add Approver</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        {/* Stage */}
-        <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Stage</label>
-            <select
-            value={selectedStage}
-            onChange={(e) => {
-              setSelectedStage(e.target.value);
-              setSelectedUser('');
-              setRequiresApprovalReason(false);
-            }}
-            className="w-full h-10 px-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
-            >
-            <option value="1">Stage 1</option>
-            <option value="2">Stage 2</option>
-            </select>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 transition-shadow hover:shadow-md">
+        <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2 tracking-tight">
+          <UserPlus className="text-navy-600" size={20} />
+          Assign New Approver
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end bg-slate-50 p-6 rounded-2xl border border-slate-100">
+        <div className="relative">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Stage</label>
+            <div className="relative">
+              <select
+              value={selectedStage}
+              onChange={(e) => {
+                setSelectedStage(e.target.value);
+                setSelectedUser('');
+                setRequiresApprovalReason(false);
+              }}
+              className="field-input appearance-none pr-10 bg-white"
+              >
+              <option value="1">Stage 1 Approver</option>
+              <option value="2">Stage 2 Approver</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"/></svg>
+              </div>
+            </div>
         </div>
 
-        {/* User */}
-        <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Select User</label>
+        <div className="relative">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Select User</label>
             {users.length === 0 ? (
               <input
                 type="email"
                 placeholder="approver@dsgroup.com"
                 value={selectedUser}
                 onChange={(e) => setSelectedUser(e.target.value)}
-                className="w-full h-10 px-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
+                className="field-input bg-white"
               />
             ) : (
-              <select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="w-full h-10 px-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-500"
-              >
-                <option value="">-- Select a user --</option>
-                {getAvailableUsers().length > 0 ? (
-                  getAvailableUsers().map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.full_name} ({user.email})
-                    </option>
-                  ))
-                ) : (
-                  <option disabled>No available users</option>
-                )}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="field-input appearance-none pr-10 bg-white"
+                >
+                  <option value="">-- Select a user --</option>
+                  {getAvailableUsers().length > 0 ? (
+                    getAvailableUsers().map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.full_name} ({user.email})
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>No available users</option>
+                  )}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                  <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"/></svg>
+                </div>
+              </div>
             )}
             {/* <p className="text-xs text-slate-500 mt-1">
               {getAvailableUsers().length === 0 && users.length > 0
@@ -200,7 +211,7 @@ export default function ApproversManager({ onApproverChange }) {
             <button
             onClick={handleAddApprover}
             disabled={adding}
-            className="w-full h-10 px-4 bg-navy-700 text-white rounded-lg hover:bg-navy-800 disabled:bg-slate-400 transition flex items-center justify-center gap-2"
+            className="btn-primary w-full h-[46px]"
             >
             {adding ? <Loader size={16} className="animate-spin" /> : <UserPlus size={16} />}
             {adding ? 'Adding...' : 'Add Approver'}
@@ -210,53 +221,53 @@ export default function ApproversManager({ onApproverChange }) {
       </div>
 
       {/* Approvers List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {[1, 2].map((stage) => (
-          <div key={stage} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-semibold text-slate-900">Stage {stage} Approvers</h4>
-              <span className="bg-slate-100 px-3 py-1 rounded-full text-sm font-medium text-slate-700">
-                {counts[`stage_${stage}`]}/3
+          <div key={stage} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 transition-shadow hover:shadow-md">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+              <h4 className="text-lg font-bold text-slate-900 tracking-tight">Stage {stage} Approvers</h4>
+              <span className="bg-navy-50 px-3.5 py-1.5 rounded-full text-xs font-bold text-navy-700 border border-navy-100/50">
+                {counts[`stage_${stage}`]} / 3 Assigned
               </span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {approvers.filter((a) => a.stage === stage).length > 0 ? (
                 approvers
                   .filter((a) => a.stage === stage)
                   .map((approver) => (
                     <div
                       key={approver.id}
-                      className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-navy-200 transition-all gap-4"
                     >
                       <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-slate-900">{approver.user_name}</p>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-sm font-bold text-slate-900">{approver.user_name}</p>
                           {approver.stage === 2 && approver.requires_reason_on_approval && (
-                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                              Authority approver
+                            <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                              Authority
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500">{approver.user_email}</p>
+                        <p className="text-xs font-medium text-slate-500">{approver.user_email}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 sm:self-auto self-end">
                         {approver.stage === 2 && (
                           <button
                             type="button"
                             onClick={() => handleToggleAuthorityApprover(approver)}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                               approver.requires_reason_on_approval
-                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                             }`}
                           >
-                            {approver.requires_reason_on_approval ? 'Unset authority' : 'Set authority'}
+                            {approver.requires_reason_on_approval ? 'Revoke Auth' : 'Make Auth'}
                           </button>
                         )}
                         <button
                           onClick={() => handleRemoveApprover(approver.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
                           title="Remove approver"
                         >
                           <Trash2 size={16} />

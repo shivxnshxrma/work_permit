@@ -4,41 +4,62 @@ const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const client = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true,
 });
 
-// ── Attach access token to every request ─────────────────────────────────
+// ── Request Interceptor ──────────────────────────────────────────────────
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  
-  // Set Content-Type to application/json only for non-FormData requests
   if (!(config.data instanceof FormData)) {
     config.headers['Content-Type'] = 'application/json';
   }
-  
   return config;
 });
 
-// ── On 401 — try to refresh, else logout ─────────────────────────────────
+// ── Refresh Queue Logic ──────────────────────────────────────────────────
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
+// ── Response Interceptor ─────────────────────────────────────────────────
 client.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
     if (err.response?.status === 401 && !original._retry) {
-      original._retry = true;
-      const refresh = localStorage.getItem('refresh');
-      if (refresh) {
-        try {
-          const { data } = await axios.post(`${BASE_URL}/auth/refresh/`, { refresh });
-          localStorage.setItem('access', data.access);
-          original.headers.Authorization = `Bearer ${data.access}`;
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(() => {
           return client(original);
-        } catch {
-          // Refresh expired — force logout
-          const redirectPath = localStorage.getItem('admin_id') ? '/admin/login' : '/login';
-          localStorage.clear();
-          window.location.href = redirectPath;
-        }
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      original._retry = true;
+      isRefreshing = true;
+
+      try {
+        await axios.post(`${BASE_URL}/auth/refresh/`, {}, { withCredentials: true });
+        processQueue(null);
+        return client(original);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        // Dispatch event instead of hard reload
+        window.dispatchEvent(new Event('auth-error'));
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
       }
     }
     return Promise.reject(err);
@@ -49,7 +70,7 @@ client.interceptors.response.use(
 export const authAPI = {
   register: (data)  => client.post('/auth/register/', data),
   login:    (data)  => client.post('/auth/login/',    data),
-  logout:   (refresh) => client.post('/auth/logout/', { refresh }),
+  logout:   ()      => client.post('/auth/logout/'),
   me:       ()      => client.get('/auth/me/'),
   updateMe: (data)  => client.patch('/auth/me/', data),
 };

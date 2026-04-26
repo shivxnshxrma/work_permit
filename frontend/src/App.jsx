@@ -1,6 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import useAuthStore from './store/authStore';
 import { ProtectedRoute, GuestRoute, AdminProtectedRoute, AdminGuestRoute, AppLayout } from './components/Layout';
+import { EVENTS } from './utils/constants';
 import Login        from './pages/Login';
 import Register     from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -18,9 +21,26 @@ function LegacyApprovalDetailRedirect() {
   return <Navigate to={`/reviews/${id}`} replace />;
 }
 
+function AuthErrorHandler() {
+  const navigate = useNavigate();
+  const logout = useAuthStore(s => s.logout);
+
+  useEffect(() => {
+    const handleAuthError = () => {
+      logout();
+      navigate('/login');
+    };
+    window.addEventListener(EVENTS.AUTH_ERROR, handleAuthError);
+    return () => window.removeEventListener(EVENTS.AUTH_ERROR, handleAuthError);
+  }, [navigate, logout]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthErrorHandler />
       <Toaster
         position="top-right"
         toastOptions={{

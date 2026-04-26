@@ -97,6 +97,8 @@ def _validate_stage_2_reason_assignment(stage, requires_reason, exclude_id=None)
     return None
 
 
+from apps.accounts.views import set_auth_cookies
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def admin_login(request):
@@ -129,14 +131,14 @@ def admin_login(request):
 
     refresh = RefreshToken.for_user(user)
 
-    return Response({
+    response = Response({
         'detail': 'Admin authenticated.',
         'user_id': user.id,
         'email': user.email,
-        'access': str(refresh.access_token),
-        'refresh': str(refresh),
         'user': UserSerializer(user).data,
     })
+    set_auth_cookies(response, str(refresh.access_token), str(refresh))
+    return response
 
 
 @api_view(['GET', 'POST'])
@@ -274,8 +276,22 @@ def admin_dashboard(request):
         pipeline_permits.filter(status=WorkPermit.Status.STAGE_2_REJECTED).count()
     )
 
-    stage_1_approvers = Approver.objects.filter(stage=1, is_admin=False).count()
-    stage_2_approvers = Approver.objects.filter(stage=2, is_admin=False).count()
+    stage_1_approvers_qs = Approver.objects.filter(stage=1, is_admin=False).select_related('user')
+    stage_2_approvers_qs = Approver.objects.filter(stage=2, is_admin=False).select_related('user')
+
+    def serialize_approvers(qs):
+        return [
+            {
+                'id': a.id,
+                'name': a.user.get_full_name() or a.user.email,
+                'email': a.user.email,
+                'requires_reason': a.requires_reason_on_approval,
+            }
+            for a in qs
+        ]
+
+    stage_1_data = serialize_approvers(stage_1_approvers_qs)
+    stage_2_data = serialize_approvers(stage_2_approvers_qs)
 
     return Response({
         'permits': {
@@ -287,8 +303,10 @@ def admin_dashboard(request):
             'rejected': rejected,
         },
         'approvers': {
-            'stage_1': stage_1_approvers,
-            'stage_2': stage_2_approvers,
+            'stage_1': len(stage_1_data),
+            'stage_2': len(stage_2_data),
+            'stage_1_list': stage_1_data,
+            'stage_2_list': stage_2_data,
         },
     })
 
