@@ -1,27 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, ClipboardCheck } from 'lucide-react';
+import { CheckCircle, ClipboardCheck, RefreshCw, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import client from '../api/client';
 import ApprovalCard from '../components/ApprovalCard';
 import { Breadcrumb } from '../components/Layout';
+import { Spinner } from '../components/FormElements';
 
 export default function ApprovalDashboard() {
   const navigate = useNavigate();
   const [permits, setPermits] = useState([]);
   const [approverStages, setApproverStages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('pending');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchPermits();
-  }, []);
-
-  const fetchPermits = async () => {
+  const fetchPermits = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
     try {
       const response = await client.get('/permits/approvals/pending/');
       setPermits(response.data.permits || []);
       setApproverStages(response.data.approver_stages || []);
+      if (silent) toast.success('Queue refreshed.');
     } catch (error) {
       if (error.response?.status === 403) {
         toast.error('You are not configured as an approver.');
@@ -31,26 +31,25 @@ export default function ApprovalDashboard() {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [navigate]);
 
-  const handleApprovalChange = () => {
+  useEffect(() => {
     fetchPermits();
-  };
+  }, [fetchPermits]);
+
+  const stageLabel = approverStages.length === 1
+    ? `Stage ${approverStages[0]}`
+    : `Stages ${approverStages.join(' & ')}`;
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-slate-600">Loading permits for approval...</p>
+      <div className="flex justify-center py-20">
+        <Spinner size={8} />
       </div>
     );
   }
-
-  const filteredPermits = permits.filter((p) => {
-    if (filter === 'stage1') return p.current_stage === 1;
-    if (filter === 'stage2') return p.current_stage === 2;
-    return true;
-  });
 
   return (
     <>
@@ -59,56 +58,65 @@ export default function ApprovalDashboard() {
         { label: 'Review Queue' },
       ]} />
 
-      <div className="flex items-start justify-between gap-4 mb-6">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 mb-8">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <ClipboardCheck size={18} className="text-navy-700" />
             Review Queue
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            You can review permits assigned to Stage{approverStages.length === 1 ? ` ${approverStages[0]}` : `s ${approverStages.join(', ')}`}.
+            Showing permits pending your action as a{' '}
+            <span className="font-semibold text-navy-700">{stageLabel}</span> approver.
           </p>
         </div>
-      </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-        <div className="flex gap-3 flex-wrap">
-          {[
-            { value: 'pending', label: 'All Reviews' },
-            { value: 'stage1', label: 'Stage 1' },
-            { value: 'stage2', label: 'Stage 2' },
-          ].map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f.value
-                  ? 'bg-navy-700 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          {/* Live count badge */}
+          {permits.length > 0 && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-navy-50 text-navy-700 text-xs font-bold border border-navy-100">
+              <ShieldCheck size={12} />
+              {permits.length} pending
+            </span>
+          )}
+          <button
+            onClick={() => fetchPermits({ silent: true })}
+            disabled={refreshing}
+            className="btn-secondary btn-sm"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      {filteredPermits.length > 0 ? (
+      {/* Permit Cards */}
+      {permits.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPermits.map((permit) => (
+          {permits.map((permit) => (
             <ApprovalCard
               key={permit.id}
               permit={permit}
-              onApprove={handleApprovalChange}
-              onReject={handleApprovalChange}
+              onApprove={() => fetchPermits({ silent: true })}
+              onReject={() => fetchPermits({ silent: true })}
             />
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <CheckCircle size={48} className="mx-auto text-green-500 mb-4 opacity-50" />
-          <p className="text-slate-600 text-lg">Your review queue is clear.</p>
-          <p className="text-slate-500 text-sm mt-1">No permits are waiting for action in this filter.</p>
+        <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-16 text-center">
+          <CheckCircle size={48} className="mx-auto text-emerald-400 mb-4 opacity-70" />
+          <h4 className="text-base font-bold text-slate-700">Queue is clear</h4>
+          <p className="text-sm text-slate-500 mt-2">
+            No permits are currently waiting for your review as a {stageLabel} approver.
+          </p>
+          <button
+            onClick={() => fetchPermits({ silent: true })}
+            disabled={refreshing}
+            className="btn-ghost btn-sm mt-6 mx-auto"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            Check for new permits
+          </button>
         </div>
       )}
     </>

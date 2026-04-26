@@ -48,7 +48,7 @@ export function AppLayout() {
     { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard'  },
 
     // { to: '/permits/new', icon: Plus,            label: 'New Permit' },
-    // ...(user?.approver_stages?.length ? [{ to: '/reviews', icon: ClipboardCheck, label: 'Review Queue' }] : []),
+    ...(user?.approver_stages?.length ? [{ to: '/reviews', icon: ClipboardCheck, label: 'Review Queue' }] : []),
   ];
 
   return (

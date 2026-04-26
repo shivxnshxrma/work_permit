@@ -245,7 +245,7 @@ export default function PermitForm() {
       // set the Content-Type to application/json.
       const { data } = await permitsAPI.create(payload);
 
-      toast.success(`Permit #${data.id || form.sNo} submitted successfully.`);
+      toast.success(`Permit submitted successfully.`);
       navigate('/dashboard');
     } catch (err) {
       console.error('Permit save error:', err.response?.data || err.message);

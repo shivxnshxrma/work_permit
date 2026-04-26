@@ -51,15 +51,15 @@ export default function ApproverDashboardPanel() {
         <AdminPermitStatsExplorer />
       </div>
 
-      <div className="flex items-center justify-between gap-3 mb-4">
+      {/* <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Review Queue</h2>
           <p className="text-sm text-slate-500">Permits currently waiting for your action.</p>
         </div>
         <span className="text-sm font-medium text-slate-400">{permits.length}</span>
-      </div>
+      </div> */}
 
-      {permits.length > 0 ? (
+      {/* {permits.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {permits.map((permit) => (
             <ApprovalCard
@@ -76,7 +76,7 @@ export default function ApproverDashboardPanel() {
           title="Review queue is clear"
           subtitle="There are no permits waiting for your approval right now."
         />
-      )}
+      )} */}
     </div>
   );
 }
