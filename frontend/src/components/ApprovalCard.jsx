@@ -65,6 +65,7 @@ export default function ApprovalCard({ permit, onApprove, onReject }) {
   const [activeModal, setActiveModal] = useState(null);
   const [approvalReason, setApprovalReason] = useState('');
   const [reinitiateReason, setReinitiateReason] = useState('');
+  const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
 
   const availableActions = permit.available_actions || ['approve', 'reinitiate'];
   const canApprove = availableActions.includes('approve');
@@ -88,34 +89,17 @@ export default function ApprovalCard({ permit, onApprove, onReject }) {
       
       // Show special message for final approval
       if (activeModal === 'final_approve') {
-        toast.custom((t) => (
-          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div className="rounded-2xl bg-white shadow-2xl border border-emerald-200 p-8 max-w-sm pointer-events-auto">
-              <div className="flex flex-col items-center text-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-                  <CheckCircle size={28} className="text-emerald-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">Approval Confirmed</h3>
-                  <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-                    PDF copy of your approval has been mailed to the Gate No. 2 facility.
-                  </p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    The permit holder will be notified of the final approval.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ), {
-          duration: 5000,
-        });
+        setShowApprovalSuccess(true);
+        closeModal();
+        setTimeout(() => {
+          setShowApprovalSuccess(false);
+          onApprove?.();
+        }, 3000);
       } else {
         toast.success(data.detail || 'Permit approved.');
+        closeModal();
+        onApprove?.();
       }
-      
-      closeModal();
-      onApprove?.();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to approve permit.');
     } finally {
@@ -267,6 +251,27 @@ export default function ApprovalCard({ permit, onApprove, onReject }) {
           placeholder="Explain why the permit must be reinitiated..."
           required
         />
+      )}
+
+      {showApprovalSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50">
+          <div className="rounded-2xl bg-white shadow-2xl border border-emerald-200 p-8 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                <CheckCircle size={32} className="text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">Approval Confirmed</h3>
+                <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+                  PDF copy of your approval has been mailed to the Gate No. 2 facility.
+                </p>
+                <p className="mt-3 text-xs text-slate-500">
+                  The permit holder will be notified of the final approval.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
