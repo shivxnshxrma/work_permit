@@ -6,6 +6,7 @@ import client from '../api/client';
 import ApprovalCard from '../components/ApprovalCard';
 import { Breadcrumb } from '../components/Layout';
 import { Spinner } from '../components/FormElements';
+import SignatureUploadCard from '../components/approver/SignatureUploadCard';
 
 export default function ApprovalDashboard() {
   const navigate = useNavigate();
@@ -89,6 +90,8 @@ export default function ApprovalDashboard() {
           </button>
         </div>
       </div>
+
+      <SignatureUploadCard className="mb-8" />
 
       {/* Permit Cards */}
       {permits.length > 0 ? (

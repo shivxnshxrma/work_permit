@@ -35,7 +35,10 @@ client.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
+    const requestUrl = original?.url || '';
+    const shouldSkipRefresh = requestUrl.includes('/auth/login/') || requestUrl.includes('/auth/refresh/');
+
+    if (err.response?.status === 401 && !original._retry && !shouldSkipRefresh) {
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {
           failedQueue.push({ resolve, reject });

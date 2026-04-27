@@ -2,11 +2,13 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.core.files.base import ContentFile
 from django.db import transaction
+from PIL import Image
 
 from .models import WorkPermit, Approver, ApprovalLog
 from .serializers import WorkPermitListSerializer, WorkPermitDetailSerializer
-from .services import send_final_permit_email
+from .services import attach_permit_pdf, send_final_permit_email
 
 
 def _get_approver_stages(user):
@@ -47,6 +49,91 @@ def _get_stage_2_available_actions(user, permit):
         return ['approve', 'final_approve', 'reinitiate']
 
     return ['final_approve', 'reinitiate']
+
+
+def _signature_payload(user, request):
+    signature_url = None
+    if user.signature_image:
+        signature_url = request.build_absolute_uri(user.signature_image.url)
+
+    return {
+        'has_signature': bool(user.signature_image),
+        'signature_url': signature_url,
+    }
+
+
+def _snapshot_approval_signature(user, approval_log):
+    signature = user.signature_image
+    if not signature:
+        return
+
+    filename = signature.name.rsplit('/', 1)[-1] or 'signature.png'
+    signature.open('rb')
+    try:
+        approval_log.signature_image.save(
+            filename,
+            ContentFile(signature.read()),
+            save=True,
+        )
+    finally:
+        signature.close()
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def approver_signature(request):
+    """Upload or remove the authenticated approver's signature image."""
+    stages = _get_approver_stages(request.user)
+    if not stages:
+        return Response(
+            {'detail': 'You are not configured as an approver.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    if request.method == 'GET':
+        return Response(_signature_payload(request.user, request))
+
+    if request.method == 'DELETE':
+        if request.user.signature_image:
+            request.user.signature_image.delete(save=False)
+            request.user.save(update_fields=['signature_image', 'updated_at'])
+        return Response(_signature_payload(request.user, request))
+
+    uploaded = request.FILES.get('signature_image')
+    if not uploaded:
+        return Response(
+            {'detail': 'Signature image is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if uploaded.size > 2 * 1024 * 1024:
+        return Response(
+            {'detail': 'Signature image must be 2 MB or smaller.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    allowed_content_types = {'image/png', 'image/jpeg', 'image/webp'}
+    if uploaded.content_type not in allowed_content_types:
+        return Response(
+            {'detail': 'Upload a PNG, JPG, or WEBP signature image.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        Image.open(uploaded).verify()
+        uploaded.seek(0)
+    except Exception:
+        return Response(
+            {'detail': 'Upload a valid signature image.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if request.user.signature_image:
+        request.user.signature_image.delete(save=False)
+
+    request.user.signature_image = uploaded
+    request.user.save(update_fields=['signature_image', 'updated_at'])
+    return Response(_signature_payload(request.user, request), status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])
@@ -204,13 +291,20 @@ def approve_permit(request, pk):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    ApprovalLog.objects.create(
+    if not request.user.signature_image:
+        return Response(
+            {'detail': 'Upload your signature image before approving permits.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    approval_log = ApprovalLog.objects.create(
         permit=permit,
         approver=request.user,
         stage=current_stage,
         action='approved',
         reason=reason
     )
+    _snapshot_approval_signature(request.user, approval_log)
 
     # Move to next stage or approve
     if current_stage == 1:
@@ -224,7 +318,9 @@ def approve_permit(request, pk):
             permit.status = WorkPermit.Status.APPROVED
             permit.current_stage = 3
 
-    permit.save()
+    permit.save(update_fields=['status', 'current_stage', 'updated_at'])
+    attach_permit_pdf(permit)
+    permit.save(update_fields=['pdf_file'])
 
     email_sent = False
     email_error = None

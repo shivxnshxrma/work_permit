@@ -21,6 +21,7 @@ urlpatterns = [
 
     # Approver endpoints
     path('approvals/summary/',         approver_views.approver_summary, name='approver-summary'),
+    path('approvals/signature/',       approver_views.approver_signature, name='approver-signature'),
     path('approvals/pending/',         approver_views.approver_permits, name='approver-permits'),
     path('approvals/<int:pk>/',        approver_views.approver_permit_detail, name='approver-permit-detail'),
     path('approvals/<int:pk>/approve/', approver_views.approve_permit,  name='approve-permit'),

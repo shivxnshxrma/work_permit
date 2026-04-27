@@ -9,6 +9,12 @@ def permit_upload_path(instance, filename):
     return f'permits/{instance.user_id}/{uuid.uuid4().hex}.pdf'
 
 
+def approval_signature_upload_path(instance, filename):
+    """Store approval-time signature snapshots under media/approval_signatures/<permit_id>/<uuid>.<ext>."""
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'png'
+    return f'approval_signatures/{instance.permit_id or "new"}/{uuid.uuid4().hex}.{ext}'
+
+
 class WorkPermit(models.Model):
 
     class Status(models.TextChoices):
@@ -100,6 +106,7 @@ class ApprovalLog(models.Model):
     stage = models.IntegerField(choices=[(1, 'Stage 1'), (2, 'Stage 2')])
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     reason = models.TextField(blank=True)  # For rejections or notes
+    signature_image = models.ImageField(upload_to=approval_signature_upload_path, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

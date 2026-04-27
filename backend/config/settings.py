@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR / '.env', override=True)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
@@ -63,6 +63,11 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = 'accounts.User'
+
+# ── Authentication Backends ───────────────────────────────────────────────
+AUTHENTICATION_BACKENDS = [
+    'apps.accounts.authentication.EmailBackend',
+]
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

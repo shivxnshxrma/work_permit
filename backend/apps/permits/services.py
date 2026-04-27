@@ -5,8 +5,10 @@ from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
-from pypdf import PdfReader, PdfWriter
-from pypdf.generic import NameObject, TextStringObject
+from django.utils import timezone
+from PIL import Image, ImageChops
+from pypdf import PdfReader, PdfWriter, Transformation
+from pypdf.generic import DictionaryObject, NameObject, TextStringObject
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,29 @@ SHIFT_PERIOD_CHECKBOXES = {
         'AM': 'checkbox_129xeyd',
         'PM': 'checkbox_130rjzu',
     },
+}
+
+APPROVAL_NAME_FIELDS = (
+    'stage1_approver_name',
+    'stage2_approver(auth)_name',
+    'stage2_approver(notAuth1)_name',
+    'stage2_approver(notAuth2)_name',
+)
+APPROVAL_SIGNATURE_FIELDS = (
+    'stage1_approver_sign',
+    'stage2_approver(auth)_sign',
+    'stage2_approver(notAuth1)_sign',
+    'stage2_approver(notAuth2)_sign',
+)
+APPROVAL_DATE_FIELDS = {
+    'stage1': 'text_61dgnx',
+    'stage2_authority': 'text_62pfbd',
+    'stage2_final': 'text_65zlat',
+}
+PARTICIPANT_SIGNATURE_NAME_FIELDS = {
+    'entrant_sign': 'entrant',
+    'attendant_sign': 'attendant',
+    'signature_107sgre': 'supervisor',
 }
 
 DEFAULT_TEXT_FONT = '/Helvetica'
@@ -128,6 +153,10 @@ FIELD_FONT_SIZES = {
     'text_107ecdr': 5,
     'text_125pdrj': 5,
     'text_126vnhj': 5,
+    'stage1_approver_name': 4.5,
+    'stage2_approver(auth)_name': 4.5,
+    'stage2_approver(notAuth1)_name': 4.5,
+    'stage2_approver(notAuth2)_name': 4.5,
 }
 
 
@@ -147,6 +176,16 @@ def _date_parts(value):
     if len(parts) == 3:
         return (parts[2], parts[1], parts[0])
     return (str(value), '', '')
+
+
+def _datetime_date_text(value):
+    if not value:
+        return ''
+    if hasattr(value, 'date'):
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
+        return value.date().strftime('%d/%m/%Y')
+    return _date_text(value)
 
 
 def _collect_checkbox_on_values(reader):
@@ -173,6 +212,33 @@ def _collect_checkbox_on_values(reader):
             if on_values:
                 values[field_name] = on_values[0]
     return values
+
+
+def _widget_field_name(annot):
+    field_name = annot.get('/T')
+    parent = annot.get('/Parent')
+    if not field_name and parent:
+        field_name = parent.get_object().get('/T')
+    return str(field_name) if field_name else None
+
+
+def _collect_widget_rects(writer):
+    rects = {}
+    for page_index, page in enumerate(writer.pages):
+        for annot_ref in page.get('/Annots') or []:
+            annot = annot_ref.get_object()
+            if annot.get('/Subtype') != '/Widget':
+                continue
+
+            field_name = _widget_field_name(annot)
+            rect = annot.get('/Rect')
+            if not field_name or not rect:
+                continue
+
+            rects.setdefault(field_name, []).append(
+                (page_index, tuple(float(value) for value in rect))
+            )
+    return rects
 
 
 def _promote_child_text_widgets(writer, field_names):
@@ -241,6 +307,206 @@ def _normalize_time(value):
     return raw, ''
 
 
+def _approval_pdf_fields(permit):
+    from .models import ApprovalLog, Approver
+
+    text_values = {field_name: '' for field_name in APPROVAL_NAME_FIELDS}
+    signature_images = {field_name: None for field_name in APPROVAL_SIGNATURE_FIELDS}
+
+    logs = list(
+        ApprovalLog.objects.filter(permit=permit, action='approved')
+        .select_related('approver')
+        .order_by('created_at', 'id')
+    )
+    if not logs:
+        return text_values, signature_images
+
+    user_ids = [log.approver_id for log in logs if log.approver_id]
+    roles = {
+        (role.user_id, role.stage): role
+        for role in Approver.objects.filter(
+            user_id__in=user_ids,
+            stage__in=[1, 2],
+            is_admin=False,
+        )
+    }
+
+    def is_stage_2_authority(log):
+        role = roles.get((log.approver_id, 2))
+        return bool(role and role.requires_reason_on_approval)
+
+    def assign(name_field, signature_field, log):
+        if not log or not log.approver:
+            return
+        text_values[name_field] = log.approver.full_name
+        signature = (
+            getattr(log, 'signature_image', None)
+            or getattr(log.approver, 'signature_image', None)
+        )
+        signature_images[signature_field] = signature if signature else None
+
+    stage_1_log = next((log for log in logs if log.stage == 1), None)
+    assign('stage1_approver_name', 'stage1_approver_sign', stage_1_log)
+    if stage_1_log:
+        text_values[APPROVAL_DATE_FIELDS['stage1']] = _datetime_date_text(stage_1_log.created_at)
+
+    stage_2_logs = [log for log in logs if log.stage == 2]
+    authority_log = next((log for log in stage_2_logs if is_stage_2_authority(log)), None)
+    assign('stage2_approver(auth)_name', 'stage2_approver(auth)_sign', authority_log)
+    if authority_log:
+        text_values[APPROVAL_DATE_FIELDS['stage2_authority']] = _datetime_date_text(authority_log.created_at)
+
+    non_authority_logs = [log for log in stage_2_logs if not is_stage_2_authority(log)]
+    for index, log in enumerate(non_authority_logs[:2], start=1):
+        assign(
+            f'stage2_approver(notAuth{index})_name',
+            f'stage2_approver(notAuth{index})_sign',
+            log,
+        )
+        if index == 1:
+            text_values[APPROVAL_DATE_FIELDS['stage2_final']] = _datetime_date_text(log.created_at)
+
+    return text_values, signature_images
+
+
+def _trim_signature_image(image):
+    image = image.convert('RGBA')
+    alpha_bbox = image.getchannel('A').getbbox()
+    if alpha_bbox:
+        image = image.crop(alpha_bbox)
+
+    rgb_image = image.convert('RGB')
+    white_background = Image.new('RGB', rgb_image.size, (255, 255, 255))
+    diff = ImageChops.difference(rgb_image, white_background)
+    content_bbox = diff.getbbox()
+    if content_bbox:
+        image = image.crop(content_bbox)
+
+    flattened = Image.new('RGB', image.size, (255, 255, 255))
+    flattened.paste(image, mask=image.getchannel('A'))
+    return flattened
+
+
+def _signature_pdf_page(signature_image):
+    try:
+        signature_image.open('rb')
+        image = Image.open(signature_image)
+        image.load()
+    except Exception as exc:
+        logger.warning('Could not open signature image %s: %s', signature_image, exc)
+        return None
+    finally:
+        try:
+            signature_image.close()
+        except Exception:
+            pass
+
+    image = _trim_signature_image(image)
+    if image.width <= 0 or image.height <= 0:
+        return None
+
+    output = BytesIO()
+    image.save(output, format='PDF', resolution=72.0)
+    output.seek(0)
+    return PdfReader(output).pages[0]
+
+
+def _escape_pdf_text(value):
+    return str(value).replace('\\', '\\\\').replace('(', '\\(').replace(')', '\\)')
+
+
+def _fit_font_size(text, width, max_size=4.5, min_size=3.0):
+    if not text:
+        return max_size
+    estimated_width = len(text) * max_size * 0.5
+    if estimated_width <= width:
+        return max_size
+    return max(min_size, min(max_size, width / (len(text) * 0.5)))
+
+
+def _ensure_page_helvetica(writer, page):
+    resources = page.get('/Resources')
+    if resources is None:
+        resources = DictionaryObject()
+        page[NameObject('/Resources')] = resources
+    else:
+        resources = resources.get_object()
+
+    if '/Font' not in resources:
+        resources[NameObject('/Font')] = DictionaryObject()
+
+    fonts = resources['/Font'].get_object()
+    font_name = NameObject('/WPHelv')
+    if font_name not in fonts:
+        fonts[font_name] = writer._add_object(DictionaryObject({
+            NameObject('/Type'): NameObject('/Font'),
+            NameObject('/Subtype'): NameObject('/Type1'),
+            NameObject('/BaseFont'): NameObject('/Helvetica'),
+        }))
+    return font_name
+
+
+def _stamp_widget_text(writer, field_values):
+    widget_rects = _collect_widget_rects(writer)
+
+    for field_name, value in field_values.items():
+        text = (value or '').strip()
+        if not text:
+            continue
+
+        for page_index, rect in widget_rects.get(field_name, []):
+            page = writer.pages[page_index]
+            font_name = _ensure_page_helvetica(writer, page)
+            x1, y1, x2, y2 = rect
+            padding = 1.0
+            width = max((x2 - x1) - (padding * 2), 1)
+            height = max(y2 - y1, 1)
+            font_size = _fit_font_size(text, width)
+            x = x1 + padding
+            y = y1 + max((height - font_size) / 2, 0)
+            content = (
+                f'q\nBT\n{font_name} {font_size:.2f} Tf\n0 0 0 rg\n'
+                f'1 0 0 1 {x:.2f} {y:.2f} Tm\n({_escape_pdf_text(text)}) Tj\n'
+                'ET\nQ'
+            ).encode('utf-8')
+            writer._merge_content_stream_to_page(page, content)
+
+
+def _stamp_signature_images(writer, signature_images):
+    widget_rects = _collect_widget_rects(writer)
+
+    for field_name, signature_image in signature_images.items():
+        if not signature_image:
+            continue
+
+        placements = widget_rects.get(field_name, [])
+        for page_index, rect in placements:
+            image_page = _signature_pdf_page(signature_image)
+            if not image_page:
+                continue
+
+            x1, y1, x2, y2 = rect
+            padding = 1.0
+            target_width = max((x2 - x1) - (padding * 2), 1)
+            target_height = max((y2 - y1) - (padding * 2), 1)
+            source_width = float(image_page.mediabox.width)
+            source_height = float(image_page.mediabox.height)
+            if source_width <= 0 or source_height <= 0:
+                continue
+
+            scale = min(target_width / source_width, target_height / source_height)
+            draw_width = source_width * scale
+            draw_height = source_height * scale
+            offset_x = x1 + padding + ((target_width - draw_width) / 2)
+            offset_y = y1 + padding + ((target_height - draw_height) / 2)
+
+            writer.pages[page_index].merge_transformed_page(
+                image_page,
+                Transformation().scale(scale).translate(offset_x, offset_y),
+                over=True,
+            )
+
+
 def build_filled_permit_pdf(permit):
     if not PDF_TEMPLATE_PATH.exists():
         raise FileNotFoundError(f'PDF template not found at {PDF_TEMPLATE_PATH}')
@@ -258,6 +524,7 @@ def build_filled_permit_pdf(permit):
 
     start_shift_text, start_shift_period = _normalize_time(form_data.get('shiftStart', ''))
     end_shift_text, end_shift_period = _normalize_time(form_data.get('shiftEnd', ''))
+    approval_text_fields, approval_signature_images = _approval_pdf_fields(permit)
 
     text_fields = {
         'text_1ejpd': _text_value('text_1ejpd', valid_from_day),
@@ -323,6 +590,10 @@ def build_filled_permit_pdf(permit):
         'text_125pdrj': _text_value('text_125pdrj', form_data.get('ppeOtherSpec1', '')),
         'text_126vnhj': _text_value('text_126vnhj', form_data.get('ppeOtherSpec2', '')),
     }
+    text_fields.update({
+        field_name: _text_value(field_name, value)
+        for field_name, value in approval_text_fields.items()
+    })
 
     button_fields = {}
     selected_work_types = set(form_data.get('workTypes', []))
@@ -352,6 +623,20 @@ def build_filled_permit_pdf(permit):
             auto_regenerate=True,
             flatten=True,
         )
+
+    participant_signature_names = {
+        field_name: form_data.get(form_key, '')
+        for field_name, form_key in PARTICIPANT_SIGNATURE_NAME_FIELDS.items()
+    }
+
+    approval_name_text_fields = {
+        field_name: approval_text_fields.get(field_name, '')
+        for field_name in APPROVAL_NAME_FIELDS
+    }
+
+    _stamp_widget_text(writer, approval_name_text_fields)
+    _stamp_widget_text(writer, participant_signature_names)
+    _stamp_signature_images(writer, approval_signature_images)
 
     # Remove widget annotations after flattening so all values remain visible
     # in PDF viewers that do not honor interactive form appearances.

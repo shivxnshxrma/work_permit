@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import client from '../../api/client';
-import ApprovalCard from '../ApprovalCard';
 import AdminPermitStatsExplorer from '../admin/AdminPermitStatsExplorer';
-import { EmptyState, Spinner } from '../FormElements';
+import { Spinner } from '../FormElements';
+import SignatureUploadCard from './SignatureUploadCard';
 
 export default function ApproverDashboardPanel() {
   const [loading, setLoading] = useState(true);
@@ -46,6 +45,8 @@ export default function ApproverDashboardPanel() {
           </p>
         </div>
       </div>
+
+      <SignatureUploadCard className="mb-8" />
 
       <div className="mb-8">
         <AdminPermitStatsExplorer />

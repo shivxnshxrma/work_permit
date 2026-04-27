@@ -33,15 +33,17 @@ class UserSerializer(serializers.ModelSerializer):
     permit_count = serializers.SerializerMethodField()
     approver_stages = serializers.SerializerMethodField()
     requires_stage_2_approval_reason = serializers.SerializerMethodField()
+    signature_url = serializers.SerializerMethodField()
 
     class Meta:
         model  = User
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name',
             'full_name', 'department', 'employee_id', 'phone',
-            'permit_count', 'approver_stages', 'requires_stage_2_approval_reason', 'date_joined',
+            'permit_count', 'approver_stages', 'requires_stage_2_approval_reason',
+            'signature_url', 'date_joined',
         ]
-        read_only_fields = ['id', 'date_joined']
+        read_only_fields = ['id', 'date_joined', 'signature_url']
 
     def get_permit_count(self, obj):
         return obj.permits.count()
@@ -61,6 +63,13 @@ class UserSerializer(serializers.ModelSerializer):
             requires_reason_on_approval=True,
         ).exists()
 
+    def get_signature_url(self, obj):
+        if not obj.signature_image:
+            return None
+        request = self.context.get('request')
+        url = obj.signature_image.url
+        return request.build_absolute_uri(url) if request else url
+
 
 class CustomTokenSerializer(TokenObtainPairSerializer):
     """Add user data alongside the JWT tokens."""
@@ -78,7 +87,7 @@ class CustomTokenSerializer(TokenObtainPairSerializer):
             raise AuthenticationFailed('No active user with this email.')
 
         if not user.check_password(password):
-            raise AuthenticationFailed('Invalid password.')
+            raise AuthenticationFailed('Incorrect password.')
 
         self.user = authenticate(
             request=self.context.get('request'),
@@ -87,7 +96,7 @@ class CustomTokenSerializer(TokenObtainPairSerializer):
         )
 
         if self.user is None:
-            raise AuthenticationFailed('Invalid password.')
+            raise AuthenticationFailed('Incorrect password.')
 
         data = {}
         refresh = self.get_token(self.user)

@@ -76,7 +76,7 @@ export default function AdminLogin() {
             <Field
               label="Email" id="email" type="email" required
               value={form.email} onChange={(e) => set('email', e.target.value)}
-              placeholder="admin@dsgroup.com" error={errors.email} autoComplete="email"
+              placeholder="admin@gmail.com" error={errors.email} autoComplete="email"
             />
 
             <Field label="Password" id="password" required error={errors.password}>
