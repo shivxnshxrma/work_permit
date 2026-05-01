@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  FileText, Plus, Download, Trash2, Eye,
+  FileText, Plus, Download, Trash2, Eye, Edit,
   Calendar, MapPin, Hash, RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -83,9 +83,32 @@ function PermitCard({ permit, onDelete }) {
       </div>
 
       {/* Footer */}
-      <p className="text-[10px] text-slate-400 mt-3">
-        Created {new Date(permit.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-      </p>
+      <div className="flex items-center justify-between mt-3">
+        <p className="text-[10px] text-slate-400">
+          Created {new Date(permit.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+        {/* <div className="flex items-center gap-2">
+          {(permit.status === 'stage_1_rejected' || permit.status === 'stage_2_rejected') && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/permits/${permit.id}/edit`);
+              }}
+              className="text-[10px] font-medium text-orange-600 hover:text-orange-700 hover:underline"
+            >
+              Re-edit
+            </button>
+          )}
+          {permit.status == 'approved' &&  (
+            <button
+              onClick={handleDownload}
+              className="text-[10px] font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Download
+            </button>
+          )}
+        </div> */}
+      </div>
     </div>
   );
 }
@@ -161,7 +184,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <button onClick={loadPermits} disabled={loading}
             className="btn-ghost btn-md">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           {!user?.approver_stages?.length && (
             <Link to="/permits/new" className="btn-primary btn-md">

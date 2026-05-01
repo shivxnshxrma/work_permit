@@ -75,6 +75,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/dashboard"      element={<Dashboard />} />
             <Route path="/permits/new"    element={<PermitForm />} />
+            <Route path="/permits/:id/edit" element={<PermitForm />} />
             <Route path="/permits/:id"    element={<PermitDetail />} />
             <Route path="/reviews"        element={<ApprovalDashboard />} />
             <Route path="/reviews/:id"    element={<ApproverPermitDetail />} />

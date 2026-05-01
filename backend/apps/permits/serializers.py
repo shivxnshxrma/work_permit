@@ -120,6 +120,37 @@ class WorkPermitCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'pdf_file': f'Failed to generate permit PDF from template: {exc}'})
         return permit
 
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        """Update a reinitialized permit and reset it to stage_1 for resubmission."""
+        validated_data.pop('pdf_file', None)
+        
+        # Update the basic fields
+        instance.serial_number = validated_data.get('serial_number', instance.serial_number)
+        instance.location = validated_data.get('location', instance.location)
+        instance.valid_from = validated_data.get('valid_from', instance.valid_from)
+        instance.valid_to = validated_data.get('valid_to', instance.valid_to)
+        instance.form_data = validated_data.get('form_data', instance.form_data)
+        
+        # Reset status and stage for resubmission
+        instance.status = WorkPermit.Status.STAGE_1
+        instance.current_stage = 1
+        instance.rejection_reason = ''  # Clear the rejection reason
+        
+        instance.save()
+        
+        # Clear approval logs from all stages so approvers can take action again on resubmission
+        # This allows both stage 1 and stage 2 approvers to review and act on the resubmitted permit
+        ApprovalLog.objects.filter(permit=instance).delete()
+        
+        try:
+            attach_permit_pdf(instance)
+            instance.save(update_fields=['pdf_file'])
+        except Exception as exc:
+            raise serializers.ValidationError({'pdf_file': f'Failed to generate permit PDF from template: {exc}'})
+        
+        return instance
+
 
 class ApproverSerializer(serializers.ModelSerializer):
     """Manage approvers."""

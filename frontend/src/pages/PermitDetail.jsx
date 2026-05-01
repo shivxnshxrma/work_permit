@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { XCircle, ArrowLeft, FileText, Download, Printer } from 'lucide-react';
+import { XCircle, ArrowLeft, FileText, Download, Printer, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { permitsAPI } from '../api/client';
 import { Breadcrumb } from '../components/Layout';
@@ -105,16 +105,16 @@ export default function PermitDetail() {
           <button onClick={() => navigate('/dashboard')} className="btn-ghost btn-md">
             <ArrowLeft size={14} /> Back
           </button>
-          {/* {permit.status === 'approved' && (
-            <>
-              <button onClick={handleDownload} className="btn-secondary btn-md">
-                <Download size={14} /> Download PDF
-              </button>
-              <button onClick={handlePrint} className="btn-secondary btn-md">
-                <Printer size={14} /> Print
-              </button>
-            </>
-          )} */}
+          {(permit.status === 'stage_1_rejected' || permit.status === 'stage_2_rejected') && (
+            <button onClick={() => navigate(`/permits/${permit.id}/edit`)} className="btn-secondary btn-md">
+              <Edit size={14} /> Re-edit & Resubmit
+            </button>
+          )}
+          {['approved'].includes(permit.status) && (
+            <button onClick={handleDownload} className="btn-secondary btn-md">
+              <Download size={14} /> Download PDF
+            </button>
+          )}
           {/* {canCancelPermit(permit.status) && (
             <button onClick={handleCancel} className="btn-danger btn-md">
               <XCircle size={14} /> Cancel Permit

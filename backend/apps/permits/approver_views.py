@@ -263,10 +263,13 @@ def approve_permit(request, pk):
     reason = (request.data.get('reason') or '').strip()
     approval_type = (request.data.get('approval_type') or 'approve').strip()
 
+    # Only block if the approver has already APPROVED at this stage.
+    # Rejections should allow reapproval of resubmitted permits.
     if ApprovalLog.objects.filter(
         permit=permit,
         approver=request.user,
         stage=current_stage,
+        action='approved',
     ).exists():
         return Response(
             {'detail': 'You have already completed an action for this permit at this stage.'},
@@ -372,6 +375,8 @@ def reject_permit(request, pk):
     current_stage = permit.current_stage
     reason = (request.data.get('reason') or '').strip()
 
+    # Only block if the approver has already taken any action (approved or rejected) at this stage for this permit.
+    # For rejections, we check all actions because you shouldn't reject twice without approval in between.
     if ApprovalLog.objects.filter(
         permit=permit,
         approver=request.user,

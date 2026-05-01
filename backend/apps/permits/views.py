@@ -66,15 +66,22 @@ def permit_create(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def permit_download(request, pk):
-    """Download the PDF for an approved permit owned by the authenticated user."""
+    """Download the PDF for an approved or reinitialized permit owned by the authenticated user."""
     try:
         permit = WorkPermit.objects.get(pk=pk, user=request.user)
     except WorkPermit.DoesNotExist:
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if permit.status != WorkPermit.Status.APPROVED:
+    # Allow download for approved permits and reinitialized permits
+    allowed_statuses = [
+        WorkPermit.Status.APPROVED,
+        WorkPermit.Status.STAGE_1_REJECTED,
+        WorkPermit.Status.STAGE_2_REJECTED,
+    ]
+    
+    if permit.status not in allowed_statuses:
         return Response(
-            {'detail': 'Only approved permits can be downloaded.'},
+            {'detail': 'This permit cannot be downloaded. Only approved or reinitialized permits can be downloaded.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -92,10 +99,10 @@ def permit_download(request, pk):
     return FileResponse(permit.pdf_file, as_attachment=True, filename=filename)
 
 
-@api_view(['GET', 'DELETE'])
+@api_view(['GET', 'DELETE', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def permit_detail(request, pk):
-    """Get or cancel a permit."""
+    """Get, update, or cancel a permit."""
     try:
         permit = WorkPermit.objects.get(pk=pk, user=request.user)
     except WorkPermit.DoesNotExist:
@@ -103,6 +110,32 @@ def permit_detail(request, pk):
 
     if request.method == 'GET':
         return Response(WorkPermitDetailSerializer(permit, context={'request': request}).data)
+
+    # PATCH: Update a reinitialized permit and resubmit it
+    if request.method == 'PATCH':
+        # Only allow editing of reinitialized permits
+        if permit.status not in [WorkPermit.Status.STAGE_1_REJECTED, WorkPermit.Status.STAGE_2_REJECTED]:
+            return Response(
+                {'detail': f'Only reinitialized permits can be edited. Current status: {permit.get_status_display()}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Use create serializer for validation and data handling
+        serializer = WorkPermitCreateSerializer(
+            permit,
+            data=request.data,
+            partial=True,
+            context={'request': request},
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Save the updated permit and reset status to stage_1
+        permit = serializer.save(is_resubmission=True)
+        return Response(
+            WorkPermitDetailSerializer(permit, context={'request': request}).data,
+            status=status.HTTP_200_OK
+        )
 
     # DELETE: Cancel the permit
     if permit.status in [WorkPermit.Status.STAGE_1_REJECTED, WorkPermit.Status.STAGE_2_REJECTED, WorkPermit.Status.APPROVED]:

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Save, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { permitsAPI } from '../api/client';
@@ -107,19 +107,119 @@ function RevRow({ label, value }) {
 // ─────────────────────────────────────────────────────────────────────────
 export default function PermitForm() {
   const navigate = useNavigate();
+  const { id: permitId } = useParams();
+  const isEditing = !!permitId;
   const user = useAuthStore((state) => state.user);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const [step, setStep]       = useState(0);
   const [form, setForm]       = useState(INIT);
   const [errors, setErrors]   = useState({});
   const [saving, setSaving]   = useState(false);
-  const [loadingSerial, setLoadingSerial] = useState(true);
+  const [loadingSerial, setLoadingSerial] = useState(!isEditing);
+  const [loadingPermit, setLoadingPermit] = useState(isEditing);
 
   const set = useCallback((key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
     setErrors((current) => ({ ...current, [key]: '' }));
   }, []);
   const setV = (e) => set(e.target.id || e.target.name, e.target.value);
+
+  useEffect(() => {
+    refreshProfile();
+  }, [refreshProfile]);
+
+  // Load permit data if editing
+  useEffect(() => {
+    if (!isEditing) return;
+    
+    const loadPermit = async () => {
+      setLoadingPermit(true);
+      try {
+        const { data } = await permitsAPI.detail(permitId);
+        
+        // Only allow editing of reinitialized permits
+        if (![data.status].includes('stage_1_rejected') && ![data.status].includes('stage_2_rejected')) {
+          toast.error('Only reinitialized permits can be edited.');
+          navigate('/dashboard');
+          return;
+        }
+        
+        // Populate form from permit data
+        const formData = data.form_data || {};
+        setForm({
+          validFrom: data.valid_from || '',
+          validTo: data.valid_to || '',
+          sNo: data.serial_number || '',
+          location: data.location || '',
+          // Step 2
+          workTypes: formData.workTypes || [],
+          fireA: formData.fireA || false,
+          fireB: formData.fireB || false,
+          fireC: formData.fireC || false,
+          fireD: formData.fireD || false,
+          hazards: formData.hazards || '',
+          precautions: formData.precautions || '',
+          empResp: formData.empResp || '',
+          trainName: formData.trainName || '',
+          trainDesig: formData.trainDesig || '',
+          trainDept: formData.trainDept || '',
+          legalName: formData.legalName || '',
+          entrant: formData.entrant || '',
+          attendant: formData.attendant || '',
+          supervisor: formData.supervisor || '',
+          shiftHandover: formData.shiftHandover || '',
+          personsNotified: formData.personsNotified || '',
+          // Step 3
+          coName: formData.coName || '',
+          contactPerson: formData.contactPerson || '',
+          mobile: formData.mobile || '',
+          startDate: formData.startDate || '',
+          endDate: formData.endDate || '',
+          shiftStart: formData.shiftStart || '',
+          shiftEnd: formData.shiftEnd || '',
+          manpower: formData.manpower || '',
+          workDept: formData.workDept || '',
+          exactLoc: formData.exactLoc || '',
+          hra1: formData.hra1 || '',
+          hra2: formData.hra2 || '',
+          hra3: formData.hra3 || '',
+          hraName: formData.hraName || '',
+          hraDate: formData.hraDate || '',
+          conName: formData.conName || '',
+          conDate: formData.conDate || '',
+          repName: formData.repName || '',
+          repDate: formData.repDate || '',
+          // Step 4
+          ppe: formData.ppe || {},
+          ppeOtherSpec1: formData.ppeOtherSpec1 || '',
+          ppeOtherSpec2: formData.ppeOtherSpec2 || '',
+          ppeApprName: formData.ppeApprName || '',
+          ppeApprDate: formData.ppeApprDate || '',
+          copyIssuedBy: formData.copyIssuedBy || '',
+          issuedDate: formData.issuedDate || '',
+          cmpContractor: formData.cmpContractor || '',
+          cmpSiteIncharge: formData.cmpSiteIncharge || '',
+          cmpPersonIssuing: formData.cmpPersonIssuing || '',
+          // Step 5
+          initName: formData.initName || '',
+          initDate: formData.initDate || '',
+          hodUName: formData.hodUName || '',
+          hodUDate: formData.hodUDate || '',
+          ehsName: formData.ehsName || '',
+          ehsDate: formData.ehsDate || '',
+          hodFName: formData.hodFName || '',
+          hodFDate: formData.hodFDate || '',
+        });
+      } catch (err) {
+        toast.error('Failed to load permit. Redirecting to dashboard.');
+        navigate('/dashboard');
+      } finally {
+        setLoadingPermit(false);
+      }
+    };
+    
+    loadPermit();
+  }, [isEditing, permitId, navigate]);
 
   useEffect(() => {
     refreshProfile();
@@ -159,8 +259,11 @@ export default function PermitForm() {
       }
     };
 
-    loadNextSerial();
-  }, []);
+    // Only load serial if creating new permit (not editing)
+    if (!isEditing) {
+      loadNextSerial();
+    }
+  }, [isEditing]);
 
   const toggleWorkType = (val) => {
     set('workTypes', form.workTypes.includes(val)
@@ -241,11 +344,17 @@ export default function PermitForm() {
         form_data: form // Contains all the nested fields (PPE, Approvers, etc.)
       };
 
-      // POST directly to Django. Since it's an object, Axios/Fetch will automatically 
-      // set the Content-Type to application/json.
-      const { data } = await permitsAPI.create(payload);
+      let response;
+      if (isEditing) {
+        // Update existing permit (PATCH)
+        response = await permitsAPI.update(permitId, payload);
+        toast.success('Permit updated and resubmitted successfully.');
+      } else {
+        // Create new permit (POST)
+        response = await permitsAPI.create(payload);
+        toast.success('Permit submitted successfully.');
+      }
 
-      toast.success(`Permit submitted successfully.`);
       navigate('/dashboard');
     } catch (err) {
       console.error('Permit save error:', err.response?.data || err.message);
@@ -285,16 +394,26 @@ export default function PermitForm() {
   );
 
   // ════════════════════════════════════════════════════════════════════
+  if (loadingPermit) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner size={8} />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl">
       <Breadcrumb items={[
         { to: '/dashboard', label: 'Dashboard' },
-        { label: 'New Work Permit' },
+        { label: isEditing ? `Edit Work Permit ${form.sNo}` : 'New Work Permit' },
       ]} />
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">New Work Permit</h1>
+          <h1 className="text-xl font-bold text-slate-900">
+            {isEditing ? `Re-edit and Resubmit Permit ${form.sNo}` : 'New Work Permit'}
+          </h1>
           <p className="text-sm text-slate-500 mt-0.5">
             Step {step + 1} of {STEPS.length} — {STEPS[step]}
           </p>
@@ -620,7 +739,7 @@ export default function PermitForm() {
         ) : (
           <button onClick={handleSave} disabled={saving} className="btn-primary btn-md">
             {saving ? <Spinner size={4} /> : <Save size={15} />}
-            {saving ? 'Submitting…' : 'Submit Permit'}
+            {saving ? 'Submitting…' : (isEditing ? 'Resubmit Permit' : 'Submit Permit')}
           </button>
         )}
       </div>
