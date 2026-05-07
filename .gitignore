@@ -63,5 +63,8 @@ backend/staticfiles/
 build/
 dist/
 
-#custom
-*.txt
+# Vercel local config
+.vercel/
+
+# Custom ignores
+# (Avoid broad text file ignore unless you want all .txt files ignored.)

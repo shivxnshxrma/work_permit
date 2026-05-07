@@ -1,4 +1,4 @@
-import { Calendar, Building2, User, Shield } from 'lucide-react';
+import { Calendar, Building2, User, Shield, FileText } from 'lucide-react';
 import PermitStatusBadge from '../PermitStatusBadge';
 
 const PPE_ITEMS = [
@@ -131,6 +131,25 @@ export default function PermitReviewContent({ permit }) {
           <Row label="HRA Verified By" value={fd.hraName} />
           <Row label="HRA Date" value={fd.hraDate} />
         </InfoCard>
+
+        {(fd.groupInsuranceFileName || permit.group_insurance_url) && (
+          <InfoCard icon={FileText} title="Group Insurance">
+            <Row label="Terms" value={fd.groupInsuranceAcknowledged ? 'Acknowledged' : ''} />
+            <Row
+              label="Document"
+              value={permit.group_insurance_url ? (
+                <a
+                  href={permit.group_insurance_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-navy-700 hover:text-navy-900 hover:underline"
+                >
+                  {fd.groupInsuranceFileName || permit.group_insurance_file_name || 'View document'}
+                </a>
+              ) : fd.groupInsuranceFileName}
+            />
+          </InfoCard>
+        )}
       </div>
 
       {(fd.hazards || fd.precautions) && (

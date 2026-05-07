@@ -1,3 +1,4 @@
+import json
 import re
 
 from django.db import transaction
@@ -40,7 +41,8 @@ class WorkPermitListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'serial_number', 'location',
             'valid_from', 'valid_to', 'status', 'status_display',
-            'current_stage', 'pdf_url', 'owner_name', 'owner_email', 'rejection_reason',
+            'current_stage', 'pdf_url', 'group_insurance_url', 'group_insurance_file_name',
+            'owner_name', 'owner_email', 'rejection_reason',
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
@@ -65,22 +67,30 @@ class WorkPermitDetailSerializer(serializers.ModelSerializer):
     owner_email = serializers.CharField(source='user.email', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     approval_logs = ApprovalLogSerializer(many=True, read_only=True)
+    group_insurance_url = serializers.ReadOnlyField()
+    group_insurance_file_name = serializers.ReadOnlyField()
 
     class Meta:
         model  = WorkPermit
         fields = [
             'id', 'serial_number', 'location',
             'valid_from', 'valid_to', 'status', 'status_display',
-            'current_stage', 'form_data', 'pdf_url', 'owner_name', 'owner_email',
+            'current_stage', 'form_data', 'pdf_url', 'group_insurance_url',
+            'group_insurance_file_name', 'owner_name', 'owner_email',
             'rejection_reason', 'approval_logs',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'owner_name', 'owner_email', 'pdf_url', 'status', 'current_stage', 'approval_logs', 'rejection_reason', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'owner_name', 'owner_email', 'pdf_url', 'group_insurance_url',
+            'group_insurance_file_name', 'status', 'current_stage', 'approval_logs',
+            'rejection_reason', 'created_at', 'updated_at',
+        ]
 
 
 class WorkPermitCreateSerializer(serializers.ModelSerializer):
     """Accepts JSON permit data and generates the PDF on the backend."""
     pdf_file  = serializers.FileField(required=False, allow_null=True)
+    group_insurance_file = serializers.FileField(required=False, allow_null=True)
     form_data = serializers.JSONField(required=True)
 
     class Meta:
@@ -88,12 +98,34 @@ class WorkPermitCreateSerializer(serializers.ModelSerializer):
         fields = [
             'serial_number', 'location',
             'valid_from', 'valid_to',
-            'form_data', 'pdf_file',
+            'form_data', 'pdf_file', 'group_insurance_file',
         ]
 
     def validate_serial_number(self, value):
         if not SERIAL_NUMBER_PATTERN.match(value):
             raise serializers.ValidationError('Serial number must follow the DSHQ-YYYYMMDD-<number> format.')
+        return value
+
+    def validate_form_data(self, value):
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError('Form data must be valid JSON.')
+        return value
+
+    def validate_group_insurance_file(self, value):
+        if not value:
+            return value
+
+        max_size = 5 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError('Group insurance document must be 5 MB or smaller.')
+
+        allowed_content_types = {'application/pdf', 'image/jpeg', 'image/png'}
+        if getattr(value, 'content_type', '') not in allowed_content_types:
+            raise serializers.ValidationError('Group insurance document must be a PDF, JPG, or PNG file.')
+
         return value
 
     def validate(self, attrs):
@@ -131,6 +163,8 @@ class WorkPermitCreateSerializer(serializers.ModelSerializer):
         instance.valid_from = validated_data.get('valid_from', instance.valid_from)
         instance.valid_to = validated_data.get('valid_to', instance.valid_to)
         instance.form_data = validated_data.get('form_data', instance.form_data)
+        if validated_data.get('group_insurance_file'):
+            instance.group_insurance_file = validated_data['group_insurance_file']
         
         # Reset status and stage for resubmission
         instance.status = WorkPermit.Status.STAGE_1

@@ -143,6 +143,61 @@ npm run dev
 
 ---
 
+## Deployment
+
+For backend-specific setup and Render/Postgres config, see `backend/README.md`.
+
+### Backend on Render
+
+1. Create a new Render Web Service from this repo.
+2. Set the service root to `backend`.
+3. Use:
+   - Build Command: `pip install -r requirements.txt && python manage.py collectstatic --noinput`
+   - Start Command: `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT`
+4. Set environment variables in Render or use `render.yaml`:
+   - `SECRET_KEY`
+   - `DEBUG=False`
+   - `ALLOWED_HOSTS=<your-backend-host>`
+   - `FRONTEND_URL=https://<your-vercel-host>`
+   - `CORS_ALLOWED_ORIGINS=https://<your-vercel-host>`
+   - `DATABASE_URL=<your-render-postgres-url>`
+   - `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`
+   - `DEFAULT_FROM_EMAIL=noreply@workpermit.local`
+   - `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`
+   - `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`
+
+### Frontend on Vercel
+
+1. Deploy the `frontend` folder as a Vercel project.
+2. Use default Vite settings:
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+3. Set environment variable:
+   - `VITE_API_URL=https://<your-backend-host>/api`
+4. `frontend/vercel.json` is included to support client-side routing in the deployed app.
+
+### Postgres on Render
+
+- Add a managed Postgres database to the same Render project.
+- Copy the provided Postgres connection string into `DATABASE_URL`.
+- Example:
+  ```text
+  postgres://user:password@hostname:5432/dbname
+  ```
+- The app automatically uses this connection when `DATABASE_URL` is set.
+
+### Local backend setup
+
+- Copy `backend/.env.example` to `backend/.env`
+- Update values for `SECRET_KEY`, `FRONTEND_URL`, `EMAIL_*`, `SUPER_ADMIN_EMAIL`, and `SUPER_ADMIN_PASSWORD`
+- Run migrations locally with:
+  ```bash
+  cd backend
+  ../.venv/bin/python manage.py migrate
+  ```
+
+---
+
 ## API Endpoints
 
 ### Auth

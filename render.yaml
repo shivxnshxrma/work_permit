@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: workpermit-backend
+    env: python
+    plan: starter
+    branch: main
+    root: backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    autoDeploy: true
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generate: secret
+      - key: FRONTEND_URL
+        value: "https://your-frontend.vercel.app"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://your-frontend.vercel.app"
+      - key: ALLOWED_HOSTS
+        value: "your-backend.onrender.com"
+      - key: EMAIL_BACKEND
+        value: "django.core.mail.backends.smtp.EmailBackend"
+      - key: DEFAULT_FROM_EMAIL
+        value: "noreply@workpermit.local"

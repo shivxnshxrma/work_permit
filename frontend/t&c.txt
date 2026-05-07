@@ -1,0 +1,92 @@
+Terms and Conditions – Guidelines for Safety at Works
+The contractor shall be responsible for the safety of all employees and labourers employed by him on works, directly or through petty contractor or subcontractor.
+1. Temporary Works
+All temporary works necessary for the proper execution of the works shall be provided and maintained by the contractor at his own cost.
+Temporary works shall be removed by the contractor at his own expense when they are no longer required.
+2. Compliance with Rules for Employee of Labour
+The contractor shall comply with all applicable Central, State, Municipal, and Local laws, bylaws, rules, and regulations relating to the employment of labour.
+No person below the age of 18 years shall be employed for execution of the work.
+The contractor shall arrange insurance for personnel engaged in the work.
+Provision of safety norms including statutory liabilities such as PF, ESI, Workmen Compensation Act, or any other relevant statute shall be ensured.
+3. Observance of Environmental Regulations and Protection
+The contractor shall ensure that all workmen and subcontractors comply with environmental laws and regulations.
+All permit conditions, permissions, consents, and approvals issued by authorities regarding the work shall be followed.
+Safety of Work and Public & Labour
+The contractor shall provide and maintain at his own cost all lights, warning signage, fencing, and protective equipment necessary for safety and convenience of workers and the public.
+General Safety Requirements
+Safety belts and rope guards shall be used to prevent falls from height.
+Workers performing welding, chipping, drilling, grinding, or cutting shall use eye protection devices.
+Workers involved in wet concrete or similar work shall use waterproof boots and gloves.
+Workers in wet conditions shall be provided waterproof coats and hats.
+All workers shall wear approved helmets.
+Tools and equipment shall be suitable for the job and maintained in safe condition.
+Welding sets shall be properly earthed using insulated cable to the nearest earth pit.
+Welders shall use welding shields.
+Jointed, cut, or frayed wiring shall not be used.
+Adequate precautions shall be taken to prevent workers from contact with electrical equipment or live circuits.
+Welding, burning, and grinding operations that may cause fire shall be reported prior to commencement of work.
+Contractors shall be checked for alcohol consumption before permitting work.
+Wooden ladders and wooden scaffolds shall not be used inside premises.
+Barricading shall be ensured for hot work, height work, excavation work, electrical work, and confined space work.
+Reporting of Labour Accident
+The contractor shall report every accident occurring on works to the Project Manager or Company Representatives.
+Immediate arrangements shall be made for medical attention and assistance.
+Compensation for affected workers or their relatives shall be paid by the contractor or insurance company in accordance with the Workmen’s Compensation Act.
+The contractor shall indemnify the company against all claims, damages, penalties, and payments arising from violations by the contractor, subcontractors, or agents.
+Safety Instructions
+4. Hot Work
+Supervisor shall conduct site rounds.
+Experienced personnel with suitable PPE including apron, welding goggles/shield, and gloves shall perform the work.
+Precautions shall be taken to prevent fire and sparks.
+Fire extinguishers shall be readily available (CO₂ / ABC type).
+Adequate ventilation shall be ensured before hot work in confined spaces.
+Hoses, regulators, and flashback arrestors shall be inspected before use.
+Double earthing shall be ensured for electrical welding.
+LPG shall not be used for gas cutting.
+Flammable and combustible materials shall be removed or covered properly.
+5. Height Work (1.8 m and Above)
+Open sides and openings shall be covered or barricaded.
+Safety nets shall be installed where barricades cannot be used.
+Safety belts and harnesses shall be secured to proper anchorage points.
+Proper ladders or hoists shall be used.
+Ladders shall rise at least 3 feet above landing point with correct angle of 75°.
+Workers shall be medically fit for work at height.
+Scaffolding shall be erected by competent persons and adequately braced.
+Safe access to scaffolding shall be provided.
+6. Excavation / Civil Work
+Negative slopes and overhangs shall be eliminated.
+Shoring materials shall be available.
+Electrical cables, data cables, or pipelines shall not pass through the work area.
+Workers shall wear gumboots, helmets, safety belts, goggles, and gloves as required.
+Defective electrical tools shall not be used.
+Caution boards and fencing shall be provided.
+Toolbox training shall be conducted.
+Adequate supervision by qualified personnel shall be ensured.
+7. Electrical Work
+Only competent electricians shall perform electrical jobs.
+All live electrical parts shall be protected.
+Portable electrical tools shall use 3-core cable and 3-pin plugs.
+Electrical joints and connections shall be properly insulated.
+Electrical equipment shall not be overloaded.
+Terminal boxes shall be secured and cable extensions properly fixed.
+Portable equipment shall conform to IS standards.
+Tested and IS-compatible rubber gloves and safety shoes shall be used.
+Ladders used for electrical work shall have electrical safety mats beneath them.
+Electrically insulated and rated tools shall be used.
+Lockout-Tagout (LOTO) procedures shall be followed and keys retained only with the worker.
+8. Confined Space Entry
+Roles such as entrant, attendant, and supervisor shall be clearly defined.
+Adequate oxygen levels shall be ensured.
+Proper ventilation shall be maintained.
+Flammable gases shall be removed before work begins.
+Emergency ladders shall be provided.
+Safety belts, shoes, and helmets shall be used.
+Full body aprons shall be used where required.
+Trained watchmen shall be available for rescue.
+Low-voltage (24V) hand lamps shall be used.
+Hot work inside confined spaces shall not be performed without authorization from Safety/Security personnel.
+Appropriate rescue devices shall be available.
+9. Emergency Machinery Breakdown
+Security or Safety In-charge shall be informed about the nature of the job.
+Work shall start only after implementing all safety precautions.
+Site supervision is compulsory.

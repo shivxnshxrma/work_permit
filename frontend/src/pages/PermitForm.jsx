@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Save, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { Save, ChevronLeft, ChevronRight, FileText, Upload, ShieldCheck, X } from 'lucide-react';
 import { permitsAPI } from '../api/client';
 import { Breadcrumb } from '../components/Layout';
 import useAuthStore from '../store/authStore';
+import groupInsuranceTermsText from '../../t&c.txt?raw';
 import {
   Field, FieldGrid, YesNo, CheckPill, SectionLabel, Spinner, InfoHint,
 } from '../components/FormElements';
@@ -38,6 +39,8 @@ const INIT = {
   startDate: '', endDate: '', shiftStart: '', shiftEnd: '',
   manpower: '', workDept: '', exactLoc: '',
   hra1: '', hra2: '', hra3: '',
+  groupInsuranceAcknowledged: false,
+  groupInsuranceFileName: '',
   hraName: '', hraDate: '', conName: '', conDate: '', repName: '', repDate: '',
   // Step 4
   ppe: {},
@@ -66,6 +69,15 @@ const FIRE_RISK_INFO = {
   fireD: 'Class D (Combustible Metals)',
 };
 
+const HRA_CHECKS = [
+  ['hra1', 'Copy of registration – Contract Labour (Regulation & Abolition) Act 1970'],
+  ['hra2', 'Copy of registration – Employees Provident Funds Act 1952'],
+  ['hra3', 'Copy of registration – Employees State Insurance (ESI) Act 1948'],
+];
+
+const [GROUP_INSURANCE_TERMS_TITLE, ...GROUP_INSURANCE_TERMS_BODY_LINES] = groupInsuranceTermsText.trim().split('\n');
+const GROUP_INSURANCE_TERMS_BODY = GROUP_INSURANCE_TERMS_BODY_LINES.join('\n').trim();
+
 // ── Step panel wrapper ────────────────────────────────────────────────────
 function StepPanel({ title, icon, children }) {
   return (
@@ -75,6 +87,40 @@ function StepPanel({ title, icon, children }) {
         <h2>{title}</h2>
       </div>
       <div className="panel-card-body space-y-0">{children}</div>
+    </div>
+  );
+}
+
+function GroupInsuranceTermsModal({ onAcknowledge, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
+      <div className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">{GROUP_INSURANCE_TERMS_TITLE || 'Group Insurance Terms'}</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Required when all HRA checks are marked No.</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+            {GROUP_INSURANCE_TERMS_BODY}
+          </p>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
+          <button type="button" onClick={onClose} className="btn-secondary btn-md">Review HRA Checks</button>
+          <button type="button" onClick={onAcknowledge} className="btn-primary btn-md">
+            <ShieldCheck size={15} /> Acknowledge
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -117,6 +163,8 @@ export default function PermitForm() {
   const [saving, setSaving]   = useState(false);
   const [loadingSerial, setLoadingSerial] = useState(!isEditing);
   const [loadingPermit, setLoadingPermit] = useState(isEditing);
+  const [showGroupInsuranceTerms, setShowGroupInsuranceTerms] = useState(false);
+  const [groupInsuranceFile, setGroupInsuranceFile] = useState(null);
 
   const set = useCallback((key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
@@ -183,6 +231,8 @@ export default function PermitForm() {
           hra1: formData.hra1 || '',
           hra2: formData.hra2 || '',
           hra3: formData.hra3 || '',
+          groupInsuranceAcknowledged: formData.groupInsuranceAcknowledged || false,
+          groupInsuranceFileName: formData.groupInsuranceFileName || data.group_insurance_file_name || '',
           hraName: formData.hraName || '',
           hraDate: formData.hraDate || '',
           conName: formData.conName || '',
@@ -265,6 +315,27 @@ export default function PermitForm() {
     }
   }, [isEditing]);
 
+  const groupInsuranceRequired = HRA_CHECKS.every(([id]) => form[id] === 'No');
+
+  useEffect(() => {
+    if (groupInsuranceRequired && !form.groupInsuranceAcknowledged) {
+      setShowGroupInsuranceTerms(true);
+      return;
+    }
+
+    if (!groupInsuranceRequired) {
+      setShowGroupInsuranceTerms(false);
+      setGroupInsuranceFile(null);
+      if (form.groupInsuranceAcknowledged || form.groupInsuranceFileName) {
+        setForm((current) => ({
+          ...current,
+          groupInsuranceAcknowledged: false,
+          groupInsuranceFileName: '',
+        }));
+      }
+    }
+  }, [groupInsuranceRequired, form.groupInsuranceAcknowledged, form.groupInsuranceFileName]);
+
   const toggleWorkType = (val) => {
     set('workTypes', form.workTypes.includes(val)
       ? form.workTypes.filter((v) => v !== val)
@@ -273,6 +344,33 @@ export default function PermitForm() {
 
   const setPPE = (item, val) =>
     set('ppe', { ...form.ppe, [item]: form.ppe[item] === val ? '' : val });
+
+  const acknowledgeGroupInsuranceTerms = () => {
+    set('groupInsuranceAcknowledged', true);
+    setShowGroupInsuranceTerms(false);
+  };
+
+  const handleGroupInsuranceFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Upload a PDF, JPG, or PNG group insurance document.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Group insurance document must be 5 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    setGroupInsuranceFile(file);
+    set('groupInsuranceFileName', file.name);
+    setErrors((current) => ({ ...current, groupInsuranceFile: '' }));
+  };
 
   const validateStep = (stepIndex) => {
     const nextErrors = {};
@@ -305,6 +403,13 @@ export default function PermitForm() {
       }
       if (form.manpower && (!/^\d+$/.test(form.manpower) || Number(form.manpower) <= 0)) {
         nextErrors.manpower = 'Manpower must be a positive whole number.';
+      }
+      if (groupInsuranceRequired && !form.groupInsuranceAcknowledged) {
+        nextErrors.groupInsuranceAcknowledged = 'Acknowledge group insurance terms before continuing.';
+        setShowGroupInsuranceTerms(true);
+      }
+      if (groupInsuranceRequired && !groupInsuranceFile && !form.groupInsuranceFileName) {
+        nextErrors.groupInsuranceFile = 'Group insurance document upload is required.';
       }
     }
 
@@ -343,15 +448,26 @@ export default function PermitForm() {
         valid_to: form.validTo || null,
         form_data: form // Contains all the nested fields (PPE, Approvers, etc.)
       };
+      let requestPayload = payload;
+
+      if (groupInsuranceFile) {
+        requestPayload = new FormData();
+        requestPayload.append('serial_number', payload.serial_number);
+        requestPayload.append('location', payload.location);
+        requestPayload.append('valid_from', payload.valid_from || '');
+        requestPayload.append('valid_to', payload.valid_to || '');
+        requestPayload.append('form_data', JSON.stringify(payload.form_data));
+        requestPayload.append('group_insurance_file', groupInsuranceFile);
+      }
 
       let response;
       if (isEditing) {
         // Update existing permit (PATCH)
-        response = await permitsAPI.update(permitId, payload);
+        response = await permitsAPI.update(permitId, requestPayload);
         toast.success('Permit updated and resubmitted successfully.');
       } else {
         // Create new permit (POST)
-        response = await permitsAPI.create(payload);
+        response = await permitsAPI.create(requestPayload);
         toast.success('Permit submitted successfully.');
       }
 
@@ -433,6 +549,13 @@ export default function PermitForm() {
       </div>
 
       <StepTabs current={step} total={STEPS.length} />
+
+      {showGroupInsuranceTerms && (
+        <GroupInsuranceTermsModal
+          onAcknowledge={acknowledgeGroupInsuranceTerms}
+          onClose={() => setShowGroupInsuranceTerms(false)}
+        />
+      )}
 
       {/* ═══ STEP 0 — Permit Info ══════════════════════════════════════ */}
       {step === 0 && (
@@ -549,17 +672,54 @@ export default function PermitForm() {
             <br />
 
           <SectionLabel>To be checked by HRA (at units) and Facility Management (at Corporate)</SectionLabel>
-          {[
-            ['hra1', 'Copy of registration – Contract Labour (Regulation & Abolition) Act 1970'],
-            ['hra2', 'Copy of registration – Employees Provident Funds Act 1952'],
-            ['hra3', 'Copy of registration – Employees State Insurance (ESI) Act 1948'],
-          ].map(([id, label]) => (
+          {HRA_CHECKS.map(([id, label]) => (
             <div key={id} className="flex items-center justify-between gap-4 py-2.5
                                      border-b border-slate-100 last:border-0">
               <span className="text-sm text-slate-600 flex-1">{label}</span>
               <YesNo id={id} value={form[id]} onChange={(v) => set(id, v)} />
             </div>
           ))}
+          {groupInsuranceRequired && (
+            <div className={`mt-4 rounded-lg border px-4 py-4 ${errors.groupInsuranceFile || errors.groupInsuranceAcknowledged ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Group Insurance Document</p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Terms acknowledgement and document upload are required because all HRA checks are marked No.
+                  </p>
+                  {form.groupInsuranceAcknowledged ? (
+                    <p className="mt-1 text-xs font-semibold text-emerald-700">Terms acknowledged.</p>
+                  ) : (
+                    <button type="button" onClick={() => setShowGroupInsuranceTerms(true)} className="mt-2 text-xs font-semibold text-navy-700 hover:text-navy-900">
+                      Open terms and conditions
+                    </button>
+                  )}
+                </div>
+                {form.groupInsuranceAcknowledged ? (
+                  <label className="btn-secondary btn-md cursor-pointer">
+                    <Upload size={15} /> Upload
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                      onChange={handleGroupInsuranceFile}
+                      className="hidden"
+                    />
+                  </label>
+                ) : (
+                  <button type="button" onClick={() => setShowGroupInsuranceTerms(true)} className="btn-secondary btn-md">
+                    <ShieldCheck size={15} /> Acknowledge
+                  </button>
+                )}
+              </div>
+              {form.groupInsuranceFileName && (
+                <p className="mt-3 rounded-md bg-white px-3 py-2 text-xs font-medium text-slate-700">
+                  Selected: {form.groupInsuranceFileName}
+                </p>
+              )}
+              {errors.groupInsuranceAcknowledged && <p className="field-error mt-2">{errors.groupInsuranceAcknowledged}</p>}
+              {errors.groupInsuranceFile && <p className="field-error mt-2">{errors.groupInsuranceFile}</p>}
+            </div>
+          )}
             <br />
 
           <SectionLabel>HRA Verification</SectionLabel>
@@ -697,6 +857,7 @@ export default function PermitForm() {
                 <RevRow label="Mobile"        value={form.mobile} />
                 <RevRow label="Work Duration" value={`${form.startDate} → ${form.endDate}`} />
                 <RevRow label="Manpower"      value={form.manpower} />
+                <RevRow label="Group Insurance" value={groupInsuranceRequired ? form.groupInsuranceFileName : ''} />
               </div>
               <div className="mt-4">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">PPE</p>

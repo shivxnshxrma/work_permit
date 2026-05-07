@@ -9,6 +9,12 @@ def permit_upload_path(instance, filename):
     return f'permits/{instance.user_id}/{uuid.uuid4().hex}.pdf'
 
 
+def group_insurance_upload_path(instance, filename):
+    """Store group insurance documents under media/group_insurance/<user_id>/<uuid>.<ext>."""
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'bin'
+    return f'group_insurance/{instance.user_id}/{uuid.uuid4().hex}.{ext}'
+
+
 def approval_signature_upload_path(instance, filename):
     """Store approval-time signature snapshots under media/approval_signatures/<permit_id>/<uuid>.<ext>."""
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'png'
@@ -45,6 +51,7 @@ class WorkPermit(models.Model):
 
     # The generated PDF file
     pdf_file = models.FileField(upload_to=permit_upload_path, null=True, blank=True)
+    group_insurance_file = models.FileField(upload_to=group_insurance_upload_path, null=True, blank=True)
 
     # Approval workflow
     status     = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
@@ -70,6 +77,14 @@ class WorkPermit(models.Model):
     @property
     def pdf_url(self):
         return self.pdf_file.url if self.pdf_file else None
+
+    @property
+    def group_insurance_url(self):
+        return self.group_insurance_file.url if self.group_insurance_file else None
+
+    @property
+    def group_insurance_file_name(self):
+        return self.group_insurance_file.name.rsplit('/', 1)[-1] if self.group_insurance_file else ''
 
 
 class Approver(models.Model):
