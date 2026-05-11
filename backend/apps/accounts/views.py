@@ -7,8 +7,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.conf import settings
 
-from django.core.mail import send_mail
-
 from .serializers import RegisterSerializer, UserSerializer, CustomTokenSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
 from .models import User, PasswordResetToken
 from apps.permits.models import Approver
@@ -146,36 +144,44 @@ def forgot_password(request):
         user = User.objects.get(email=serializer.validated_data['email'])
         reset_token = PasswordResetToken.create_for_user(user)
 
-        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token.token}"
-        subject = 'DS Group Work Permit — Password Reset'
-        message = (
-            f"Hello {user.full_name},\n\n"
-            "We received a request to reset your password for your DS Group Work Permit account. "
-            f"Please visit the link below to choose a new password:\n\n{reset_link}\n\n"
-            "If you did not request a password reset, you can safely ignore this email.\n\n"
-            "If you need help, contact your administrator.\n\n"
-            "Thanks,\nDS Group Team"
-        )
+        # TODO: Email functionality disabled until client pays for email services
+        # When enabled, uncomment the email sending code below:
+        #
+        # reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token.token}"
+        # subject = 'DS Group Work Permit — Password Reset'
+        # message = (
+        #     f"Hello {user.full_name},\n\n"
+        #     "We received a request to reset your password for your DS Group Work Permit account. "
+        #     f"Please visit the link below to choose a new password:\n\n{reset_link}\n\n"
+        #     "If you did not request a password reset, you can safely ignore this email.\n\n"
+        #     "If you need help, contact your administrator.\n\n"
+        #     "Thanks,\nDS Group Team"
+        # )
+        #
+        # send_mail(
+        #     subject,
+        #     message,
+        #     settings.DEFAULT_FROM_EMAIL,
+        #     [user.email],
+        #     fail_silently=False,
+        # )
 
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
-        )
+        # For now, return the token directly (remove in production)
+        return Response({
+            'detail': 'Password reset email sent.',
+            'token': reset_token.token,  # Remove in production after email is implemented
+        })
     except User.DoesNotExist:
-        pass
+        # Return generic message for security (don't reveal if email exists)
+        return Response(
+            {'detail': 'If an account exists with this email, you will receive reset instructions.'},
+            status=status.HTTP_200_OK
+        )
     except Exception as e:
         return Response(
-            {'detail': 'Unable to send password reset instructions at this time.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            {'detail': f'An error occurred: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-    return Response(
-        {'detail': 'If an account exists with this email, you will receive reset instructions.'},
-        status=status.HTTP_200_OK,
-    )
 
 
 @api_view(['POST'])

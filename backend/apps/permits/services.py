@@ -4,7 +4,6 @@ from io import BytesIO
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.mail import EmailMessage
 from django.utils import timezone
 from PIL import Image, ImageChops
 from pypdf import PdfReader, PdfWriter, Transformation
@@ -657,36 +656,42 @@ def attach_permit_pdf(permit):
 
 def send_final_permit_email(permit):
     """Email the approved permit PDF to the configured recipient, if any."""
-    recipient = getattr(settings, 'FINAL_PERMIT_EMAIL', '') or os.getenv('FINAL_PERMIT_EMAIL', '')
-    if not recipient:
-        logger.info('Skipping final permit email for permit %s because FINAL_PERMIT_EMAIL is not configured.', permit.pk)
-        return False
+    # TODO: Email functionality disabled until client pays for email services
+    # When enabled, uncomment the email sending code below:
+    #
+    # recipient = getattr(settings, 'FINAL_PERMIT_EMAIL', '') or os.getenv('FINAL_PERMIT_EMAIL', '')
+    # if not recipient:
+    #     logger.info('Skipping final permit email for permit %s because FINAL_PERMIT_EMAIL is not configured.', permit.pk)
+    #     return False
+    #
+    # if not permit.pdf_file:
+    #     logger.warning('Skipping final permit email for permit %s because no PDF is attached.', permit.pk)
+    #     return False
+    #
+    # email = EmailMessage(
+    #     subject=f'Approved Work Permit #{permit.serial_number or permit.pk}',
+    #     body=(
+    #         f'The attached work permit has completed all approval stages.\n\n'
+    #         f'Permit ID: {permit.pk}\n'
+    #         f'Serial Number: {permit.serial_number or "N/A"}\n'
+    #         f'Employee: {permit.user.full_name} <{permit.user.email}>'
+    #     ),
+    #     from_email=settings.DEFAULT_FROM_EMAIL,
+    #     to=[recipient],
+    # )
+    #
+    # permit.pdf_file.open('rb')
+    # try:
+    #     email.attach(
+    #         permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf',
+    #         permit.pdf_file.read(),
+    #         'application/pdf',
+    #     )
+    # finally:
+    #     permit.pdf_file.close()
+    #
+    # email.send(fail_silently=False)
+    # return True
 
-    if not permit.pdf_file:
-        logger.warning('Skipping final permit email for permit %s because no PDF is attached.', permit.pk)
-        return False
-
-    email = EmailMessage(
-        subject=f'Approved Work Permit #{permit.serial_number or permit.pk}',
-        body=(
-            f'The attached work permit has completed all approval stages.\n\n'
-            f'Permit ID: {permit.pk}\n'
-            f'Serial Number: {permit.serial_number or "N/A"}\n'
-            f'Employee: {permit.user.full_name} <{permit.user.email}>'
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[recipient],
-    )
-
-    permit.pdf_file.open('rb')
-    try:
-        email.attach(
-            permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf',
-            permit.pdf_file.read(),
-            'application/pdf',
-        )
-    finally:
-        permit.pdf_file.close()
-
-    email.send(fail_silently=False)
-    return True
+    logger.info('Email functionality disabled for permit %s', permit.pk)
+    return False
