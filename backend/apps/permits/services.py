@@ -391,6 +391,7 @@ def _signature_pdf_page(signature_image):
         signature_image.open('rb')
         image = Image.open(signature_image)
         image.load()
+        image.thumbnail((800, 800), Image.Resampling.LANCZOS)
     except Exception as exc:
         logger.warning('Could not open signature image %s: %s', signature_image, exc)
         return None
@@ -640,7 +641,7 @@ def build_filled_permit_pdf(permit):
     # Remove widget annotations after flattening so all values remain visible
     # in PDF viewers that do not honor interactive form appearances.
     writer.remove_annotations(['/Widget'])
-    writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
+    # writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
 
     output = BytesIO()
     writer.write(output)
