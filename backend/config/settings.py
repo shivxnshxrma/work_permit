@@ -24,7 +24,7 @@ def clean_origin(origin):
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost 127.0.0.1')
+ALLOWED_HOSTS = ['work-permit.onrender.com', 'localhost', '127.0.0.1']
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
 SUPER_ADMIN_EMAIL = os.getenv('SUPER_ADMIN_EMAIL', 'admin@dsgroup.com')
 SUPER_ADMIN_PASSWORD = os.getenv('SUPER_ADMIN_PASSWORD', 'SuperAdmin@123')
@@ -159,10 +159,11 @@ if _cors_allowed_origins:
 else:
     CORS_ALLOWED_ORIGINS = [FRONTEND_URL, 'http://localhost:3000']
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = [
-    origin for origin in (clean_origin(value) for value in env_list('CSRF_TRUSTED_ORIGINS', ' '.join(CORS_ALLOWED_ORIGINS)))
-    if origin
-]
+# CSRF_TRUSTED_ORIGINS = [
+#     origin for origin in (clean_origin(value) for value in env_list('CSRF_TRUSTED_ORIGINS', ' '.join(CORS_ALLOWED_ORIGINS)))
+#     if origin
+# ]
+CSRF_TRUSTED_ORIGINS = ['https://work-permit-system.vercel.app']
 
 # ── Email ─────────────────────────────────────────────────────────────────
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
