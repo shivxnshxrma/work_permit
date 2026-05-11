@@ -134,7 +134,12 @@ SIMPLE_JWT = {
 # ── CORS ──────────────────────────────────────────────────────────────────
 _cors_allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS')
 if _cors_allowed_origins:
-    CORS_ALLOWED_ORIGINS = _cors_allowed_origins.split()
+    # Parse origins and ensure they don't include paths (CORS origins should be protocol://domain:port only)
+    CORS_ALLOWED_ORIGINS = []
+    for origin in _cors_allowed_origins.split():
+        parsed = urlparse(origin.rstrip('/'))
+        clean_origin = f"{parsed.scheme}://{parsed.netloc}"
+        CORS_ALLOWED_ORIGINS.append(clean_origin)
 else:
     CORS_ALLOWED_ORIGINS = [FRONTEND_URL, 'http://localhost:3000']
 CORS_ALLOW_CREDENTIALS = True
