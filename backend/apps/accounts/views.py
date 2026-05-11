@@ -18,15 +18,15 @@ def set_auth_cookies(response, access, refresh):
         'access', access,
         max_age=cookie_max_age,
         httponly=True,
-        samesite='Lax',
-        secure=not settings.DEBUG,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+        secure=settings.AUTH_COOKIE_SECURE,
     )
     response.set_cookie(
         'refresh', refresh,
         max_age=cookie_max_age,
         httponly=True,
-        samesite='Lax',
-        secure=not settings.DEBUG,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+        secure=settings.AUTH_COOKIE_SECURE,
     )
 
 class LoginView(TokenObtainPairView):
@@ -127,8 +127,8 @@ def logout(request):
     except Exception:
         pass
     response = Response({'detail': 'Logged out.'})
-    response.delete_cookie('access')
-    response.delete_cookie('refresh')
+    response.delete_cookie('access', samesite=settings.AUTH_COOKIE_SAMESITE)
+    response.delete_cookie('refresh', samesite=settings.AUTH_COOKIE_SAMESITE)
     return response
 
 

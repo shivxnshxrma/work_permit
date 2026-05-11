@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlparse
@@ -6,11 +7,24 @@ import dj_database_url
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env', override=True)
+load_dotenv(BASE_DIR / '.env', override=False)
+
+
+def env_list(name, default=''):
+    raw = os.getenv(name, default)
+    return [item for item in re.split(r'[\s,]+', raw.strip()) if item]
+
+
+def clean_origin(origin):
+    parsed = urlparse(origin.rstrip('/'))
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost 127.0.0.1').split()
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost 127.0.0.1')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
 SUPER_ADMIN_EMAIL = os.getenv('SUPER_ADMIN_EMAIL', 'admin@dsgroup.com')
 SUPER_ADMIN_PASSWORD = os.getenv('SUPER_ADMIN_PASSWORD', 'SuperAdmin@123')
@@ -80,6 +94,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+AUTH_COOKIE_SECURE = os.getenv('AUTH_COOKIE_SECURE', str(not DEBUG)) == 'True'
+AUTH_COOKIE_SAMESITE = os.getenv('AUTH_COOKIE_SAMESITE', 'None' if not DEBUG else 'Lax')
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
@@ -135,15 +151,18 @@ SIMPLE_JWT = {
 # ── CORS ──────────────────────────────────────────────────────────────────
 _cors_allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS')
 if _cors_allowed_origins:
-    # Parse origins and ensure they don't include paths (CORS origins should be protocol://domain:port only)
-    CORS_ALLOWED_ORIGINS = []
-    for origin in _cors_allowed_origins.split():
-        parsed = urlparse(origin.rstrip('/'))
-        clean_origin = f"{parsed.scheme}://{parsed.netloc}"
-        CORS_ALLOWED_ORIGINS.append(clean_origin)
+    # CORS origins must be protocol://domain:port only. Accept comma or whitespace separated env values.
+    CORS_ALLOWED_ORIGINS = [
+        origin for origin in (clean_origin(value) for value in env_list('CORS_ALLOWED_ORIGINS'))
+        if origin
+    ]
 else:
     CORS_ALLOWED_ORIGINS = [FRONTEND_URL, 'http://localhost:3000']
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [
+    origin for origin in (clean_origin(value) for value in env_list('CSRF_TRUSTED_ORIGINS', ' '.join(CORS_ALLOWED_ORIGINS)))
+    if origin
+]
 
 # ── Email ─────────────────────────────────────────────────────────────────
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
