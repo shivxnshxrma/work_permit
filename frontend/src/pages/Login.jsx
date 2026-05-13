@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-import { Field, Spinner } from '../components/FormElements';
+import { AppLogo, AuthFooter, Field, Spinner } from '../components/FormElements';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -38,12 +38,13 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-900 via-navy-700 to-navy-600
+    <div className="min-h-screen bg-gradient-to-br from-vms-text via-vms-deep to-vms-primary
                     flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
 
         {/* Brand strip */}
-        <div className="mb-8 text-center">
+        <div className="mb-8 flex items-center justify-center gap-3 text-center">
+          <AppLogo className="h-12 w-12 rounded-xl bg-white/10 p-1.5" />
           <p className="text-2xl font-bold tracking-tight text-white">Work Permit System</p>
         </div>
 
@@ -89,7 +90,7 @@ export default function Login() {
 
             <p className="text-center text-sm text-slate-500">
               Forgot password?{' '}
-              <Link to="/forgot-password" className="font-semibold text-navy-700 hover:underline">
+              <Link to="/forgot-password" className="font-semibold text-vms-700 hover:underline">
                 Reset here
               </Link>
             </p>
@@ -97,15 +98,12 @@ export default function Login() {
 
           <p className="mt-6 text-center text-sm text-slate-500">
             Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-navy-700 hover:underline">
+            <Link to="/register" className="font-semibold text-vms-700 hover:underline">
               Create one
             </Link>
           </p>
         </div>
-{/* 
-        <p className="text-center text-navy-300 text-xs mt-6">
-          DS(FDS)/ADM/FM/14 · Version 6.00 · Effective 15 June 2024
-        </p> */}
+        <AuthFooter />
       </div>
     </div>
   );

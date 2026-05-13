@@ -127,7 +127,7 @@ export default function ApproversManager({ onApproverChange }) {
       {/* Add Approver Form */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 transition-shadow hover:shadow-md">
         <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2 tracking-tight">
-          <UserPlus className="text-navy-600" size={20} />
+          <UserPlus className="text-vms-600" size={20} />
           Assign New Approver
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end bg-slate-50 p-6 rounded-2xl border border-slate-100">
@@ -199,7 +199,7 @@ export default function ApproversManager({ onApproverChange }) {
                 type="checkbox"
                 checked={requiresApprovalReason}
                 onChange={(e) => setRequiresApprovalReason(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-navy-700"
+                className="w-4 h-4 rounded border-slate-300 text-vms-700"
               />
               Require this Stage 2 approver to add an approval note before approving
             </label>
@@ -226,7 +226,7 @@ export default function ApproversManager({ onApproverChange }) {
           <div key={stage} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 transition-shadow hover:shadow-md">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
               <h4 className="text-lg font-bold text-slate-900 tracking-tight">Stage {stage} Approvers</h4>
-              <span className="bg-navy-50 px-3.5 py-1.5 rounded-full text-xs font-bold text-navy-700 border border-navy-100/50">
+              <span className="bg-vms-50 px-3.5 py-1.5 rounded-full text-xs font-bold text-vms-700 border border-vms-100/50">
                 {counts[`stage_${stage}`]} / 3 Assigned
               </span>
             </div>
@@ -238,7 +238,7 @@ export default function ApproversManager({ onApproverChange }) {
                   .map((approver) => (
                     <div
                       key={approver.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-navy-200 transition-all gap-4"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow hover:border-vms-200 transition-all gap-4"
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-0.5">

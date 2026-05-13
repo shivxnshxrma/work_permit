@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import client from '../api/client';
 import ApproversManager from '../components/ApproversManager';
 import AdminPermitStatsExplorer from '../components/admin/AdminPermitStatsExplorer';
+import { AppLogo } from '../components/FormElements';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -44,23 +45,23 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-slate-600">Loading admin dashboard...</p>
+        <p className="text-vms-body">Loading admin dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-vms-shell">
       {/* Header */}
-      <div className="bg-gradient-to-r from-navy-900 via-[#12263e] to-navy-800 border-b border-navy-800 shadow-md relative z-30">
+      <div className="bg-gradient-to-r from-vms-deep via-vms-primary to-vms-active border-b border-vms-800 shadow-md relative z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center relative z-10">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/10">
-              <BarChart3 className="text-white" size={20} />
+                        <AppLogo className="h-12 w-12 rounded-xl bg-white/10 p-1.5" />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white">Admin Dashboard</h1>
-              <p className="text-sm text-navy-200 mt-0.5">Manage approvers and permit workflow</p>
+              <p className="text-sm text-vms-200 mt-0.5">Manage approvers and permit workflow</p>
             </div>
           </div>
           <button
@@ -74,30 +75,30 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+      <div className="bg-vms-panel/80 backdrop-blur-xl border-b border-vms-border sticky top-0 z-20 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-8">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`px-2 py-4 border-b-[3px] font-semibold text-sm transition-all duration-200 ${activeTab === 'dashboard'
-                  ? 'border-navy-700 text-navy-800'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  ? 'border-vms-700 text-vms-800'
+                  : 'border-transparent text-vms-muted hover:text-vms-body hover:border-vms-border'
                 }`}
             >
               <div className="flex items-center gap-2">
-                <BarChart3 size={16} className={activeTab === 'dashboard' ? 'text-navy-600' : ''} />
+                <BarChart3 size={16} className={activeTab === 'dashboard' ? 'text-vms-600' : ''} />
                 Statistics
               </div>
             </button>
             <button
               onClick={() => setActiveTab('approvers')}
               className={`px-2 py-4 border-b-[3px] font-semibold text-sm transition-all duration-200 ${activeTab === 'approvers'
-                  ? 'border-navy-700 text-navy-800'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  ? 'border-vms-700 text-vms-800'
+                  : 'border-transparent text-vms-muted hover:text-vms-body hover:border-vms-border'
                 }`}
             >
               <div className="flex items-center gap-2">
-                <Users size={16} className={activeTab === 'approvers' ? 'text-navy-600' : ''} />
+                <Users size={16} className={activeTab === 'approvers' ? 'text-vms-600' : ''} />
                 Approvers
               </div>
             </button>
@@ -114,14 +115,14 @@ export default function AdminDashboard() {
             {/* Approver Stats */}
             <div className="mt-8">
               <h3 className="text-base font-bold text-slate-900 tracking-tight mb-4 flex items-center gap-2 px-1">
-                <Users className="text-navy-600" size={18} />
+                <Users className="text-vms-600" size={18} />
                 Approvers Overview
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Stage 1 Card */}
-                <div className="relative overflow-hidden bg-white rounded-2xl p-6 border border-slate-100 shadow-sm transition-all hover:shadow-lg hover:border-navy-200 hover:-translate-y-1 group cursor-pointer">
-                  <div className="absolute top-0 right-0 p-6 opacity-[0.02] group-hover:opacity-[0.04] transition-all duration-700 text-navy-900 group-hover:scale-110">
+                <div className="relative overflow-hidden bg-white rounded-2xl p-6 border border-slate-100 shadow-sm transition-all hover:shadow-lg hover:border-vms-200 hover:-translate-y-1 group cursor-pointer">
+                  <div className="absolute top-0 right-0 p-6 opacity-[0.02] group-hover:opacity-[0.04] transition-all duration-700 text-vms-900 group-hover:scale-110">
                     <Users size={120} />
                   </div>
                   <div className="relative z-10 flex justify-between items-start mb-6">
@@ -132,12 +133,12 @@ export default function AdminDashboard() {
                         <p className="text-sm font-bold text-slate-400">/ 3 assigned</p>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-navy-50 text-navy-600 flex items-center justify-center font-black text-xl border border-navy-100">
+                    <div className="w-12 h-12 rounded-2xl bg-vms-50 text-vms-600 flex items-center justify-center font-black text-xl border border-vms-100">
                       1
                     </div>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 relative z-10 overflow-hidden mb-4">
-                    <div className="bg-navy-500 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(stats.approvers.stage_1 / 3) * 100}%` }} />
+                    <div className="bg-vms-500 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(stats.approvers.stage_1 / 3) * 100}%` }} />
                   </div>
                   
                   {/* Stage 1 Approver Names */}
@@ -146,7 +147,7 @@ export default function AdminDashboard() {
                       <div className="space-y-2.5">
                         {stats.approvers.stage_1_list.map((approver) => (
                           <div key={approver.id} className="flex items-center gap-2.5">
-                            <div className="w-6 h-6 rounded-full bg-navy-50 flex items-center justify-center text-[10px] font-bold text-navy-600 flex-shrink-0 border border-navy-100/50">
+                            <div className="w-6 h-6 rounded-full bg-vms-50 flex items-center justify-center text-[10px] font-bold text-vms-600 flex-shrink-0 border border-vms-100/50">
                               {approver.name[0]?.toUpperCase() || '?'}
                             </div>
                             <span className="text-sm font-semibold text-slate-700 truncate" title={approver.email}>{approver.name}</span>

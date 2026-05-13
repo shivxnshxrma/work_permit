@@ -33,7 +33,7 @@ function ActionModal({
             onChange={(event) => onChange(event.target.value)}
             placeholder={placeholder}
             rows="4"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-700 text-sm"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-vms-700 text-sm"
           />
         </div>
 

@@ -11,7 +11,7 @@ export default function PermitCard({ permit }) {
       <div className="p-6">
         {/* Header with Status */}
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-lg font-semibold text-slate-900 group-hover:text-navy-700 transition">
+          <h3 className="text-lg font-semibold text-slate-900 group-hover:text-vms-700 transition">
             {permit.serial_number ? `Permit ${permit.serial_number}` : `Permit #${permit.id}`}
           </h3>
           <PermitStatusBadge status={permit.status} size="sm" />
@@ -49,7 +49,7 @@ export default function PermitCard({ permit }) {
           <p className="text-xs text-slate-500">
             {new Date(permit.created_at).toLocaleDateString()}
           </p>
-          <ChevronRight size={16} className="text-slate-400 group-hover:text-navy-700 transition" />
+          <ChevronRight size={16} className="text-slate-400 group-hover:text-vms-700 transition" />
         </div>
       </div>
     </Link>

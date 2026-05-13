@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
-import { Field, FieldGrid, Spinner } from '../components/FormElements';
+import { AppLogo, AuthFooter, Field, FieldGrid, Spinner } from '../components/FormElements';
 
 const INITIAL = {
   first_name: '', last_name: '', email: '', username: '',
@@ -72,12 +72,13 @@ export default function Register() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-900 via-navy-700 to-navy-600
+    <div className="min-h-screen bg-gradient-to-br from-vms-text via-vms-deep to-vms-primary
                     flex items-center justify-center px-4 py-12">
       <div className=" flex flex-col w-full max-w-lg justify-center items-center">
 
         {/* Brand */}
-        <div className="mb-8 text-center">
+        <div className="mb-8 flex items-center justify-center gap-3 text-center">
+          <AppLogo className="h-12 w-12 rounded-xl bg-white/10 p-1.5" />
           <p className="text-2xl font-bold text-white">Work Permit System</p>
         </div>
 
@@ -142,9 +143,10 @@ export default function Register() {
 
           <p className="mt-6 text-center text-sm text-slate-500">
             Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-navy-700 hover:underline">Sign in</Link>
+            <Link to="/login" className="font-semibold text-vms-700 hover:underline">Sign in</Link>
           </p>
         </div>
+        <AuthFooter />
       </div>
     </div>
   );

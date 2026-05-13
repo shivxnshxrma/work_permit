@@ -5,6 +5,7 @@ import {
   LayoutDashboard, LogOut, Plus, ClipboardCheck, ChevronRight,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import { AppLogo } from './FormElements';
 
 // ── Route guard ───────────────────────────────────────────────────────────
 export function ProtectedRoute() {
@@ -52,14 +53,13 @@ export function AppLayout() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-vms-shell">
       {/* ── Top nav ─────────────────────────────────────────── */}
-      <header className="bg-navy-700 text-white shadow-lg sticky top-0 z-30">
+      <header className="bg-gradient-to-br from-vms-text via-vms-deep to-vms-primary text-white shadow-lg sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-6">
           {/* Brand */}
           <Link to="/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
-            {/* <span className="w-8 h-8 bg-red-700 rounded flex items-center justify-center
-                             font-bold text-xs tracking-tight">DS</span> */}
+            <AppLogo className="h-8 w-8 rounded-md bg-white/10 p-1" />
             <span className="font-semibold text-sm hidden sm:block">Work Permit System</span>
           </Link>
 
@@ -110,8 +110,8 @@ export function AppLayout() {
       </main>
 
       {/* ── Footer ──────────────────────────────────────────── */}
-      <footer className="border-t border-slate-200 bg-white py-3 text-center
-                         text-[10px] text-slate-400">
+      <footer className="border-t border-vms-border bg-vms-panel py-3 text-center
+                         text-[10px] text-vms-muted">
         DS Group · DS(FDS)/ADM/FM/14 · Version 6.00 · Effective 15 June 2024
       </footer>
     </div>
@@ -121,13 +121,13 @@ export function AppLayout() {
 // ── Breadcrumb ────────────────────────────────────────────────────────────
 export function Breadcrumb({ items }) {
   return (
-    <nav className="flex items-center gap-1 text-xs text-slate-400 mb-6">
+    <nav className="flex items-center gap-1 text-xs text-vms-muted mb-6">
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1">
           {i > 0 && <ChevronRight size={12} />}
           {item.to
-            ? <Link to={item.to} className="hover:text-navy-700 transition-colors">{item.label}</Link>
-            : <span className="text-slate-700 font-medium">{item.label}</span>
+            ? <Link to={item.to} className="hover:text-vms-700 transition-colors">{item.label}</Link>
+            : <span className="text-vms-body font-medium">{item.label}</span>
           }
         </span>
       ))}

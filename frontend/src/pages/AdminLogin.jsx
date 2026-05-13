@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Field, Spinner } from '../components/FormElements';
+import { AppLogo, AuthFooter, Field, Spinner } from '../components/FormElements';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
 import { authAPI } from '../api/client';
@@ -49,18 +49,16 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-navy-900 to-black
+    <div className="min-h-screen bg-gradient-to-br from-vms-text via-vms-deep to-vms-primary
                     flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Brand */}
-        <div className="flex flex-col items-center justify-center gap-2 mb-10">
-          <div className="w-14 h-14 bg-gradient-to-tr from-rose-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/30">
-            <Lock className="text-white" size={24} />
-          </div>
-          <div className="text-center mt-2">
+        <div className="flex flex-col items-center justify-center gap-3 mb-10">
+          <div className="flex items-center gap-3">
+            <AppLogo className="h-12 w-12 rounded-xl bg-white/10 p-1.5" />
             <h2 className="text-2xl font-bold tracking-tight text-white">Admin Portal</h2>
-            <p className="text-slate-400 text-sm mt-1">Secure Dashboard Access</p>
           </div>
+          <p className="text-vms-200 text-sm">Secure Dashboard Access</p>
         </div>
 
         {/* Card */}
@@ -94,6 +92,7 @@ export default function AdminLogin() {
             </button>
           </form>
         </div>
+        <AuthFooter />
       </div>
     </div>
   );

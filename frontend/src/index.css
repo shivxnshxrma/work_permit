@@ -5,23 +5,23 @@
 @layer base {
   * { box-sizing: border-box; }
   html { font-family: 'Inter', system-ui, sans-serif; }
-  body { @apply bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 antialiased min-h-screen selection:bg-navy-200 selection:text-navy-900; }
+  body { @apply bg-gradient-to-br from-vms-shell to-vms-tint text-vms-text antialiased min-h-screen selection:bg-vms-200 selection:text-vms-900; }
 }
 
 @layer components {
   /* ── Auth card ─────────────────────────────────────────────── */
   .auth-card {
-    @apply bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 p-10 w-full max-w-md transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)];
+    @apply bg-vms-panel/90 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(42,20,48,0.04)] border border-vms-border p-10 w-full max-w-md transition-all duration-300 hover:shadow-[0_8px_30px_rgb(42,20,48,0.08)];
   }
 
   /* ── Form fields ───────────────────────────────────────────── */
   .field-label {
-    @apply block text-[13px] font-semibold text-slate-600 mb-1.5 transition-colors;
+    @apply block text-[13px] font-semibold text-vms-body mb-1.5 transition-colors;
   }
   .field-input {
-    @apply w-full px-4 py-3 text-sm border border-slate-200 rounded-xl bg-slate-50/50
-           placeholder-slate-400 text-slate-900 shadow-sm
-           focus:outline-none focus:ring-4 focus:ring-navy-500/10 focus:border-navy-500 focus:bg-white
+    @apply w-full px-4 py-3 text-sm border border-vms-border rounded-xl bg-vms-shell/60
+           placeholder-vms-muted text-vms-text shadow-sm
+           focus:outline-none focus:ring-4 focus:ring-vms-500/10 focus:border-vms-500 focus:bg-white
            transition-all duration-300;
   }
   .field-input.error {
@@ -38,19 +38,19 @@
            disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97];
   }
   .btn-primary {
-    @apply btn bg-gradient-to-r from-navy-700 to-navy-800 hover:from-navy-800 hover:to-navy-900 text-white
-           focus:ring-navy-500/30 shadow-md shadow-navy-900/10 hover:shadow-lg hover:shadow-navy-900/20 hover:-translate-y-0.5;
+    @apply btn bg-gradient-to-r from-vms-700 to-vms-800 hover:from-vms-800 hover:to-vms-900 text-white
+           focus:ring-vms-500/30 shadow-md shadow-vms-900/10 hover:shadow-lg hover:shadow-vms-900/20 hover:-translate-y-0.5;
   }
   .btn-secondary {
-    @apply btn bg-white hover:bg-slate-50 text-slate-700
-           border border-slate-200 focus:ring-slate-200/50 shadow-sm hover:shadow-md hover:-translate-y-0.5;
+    @apply btn bg-white hover:bg-vms-shell text-vms-body
+           border border-vms-border focus:ring-vms-border/50 shadow-sm hover:shadow-md hover:-translate-y-0.5;
   }
   .btn-danger {
     @apply btn bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white
            focus:ring-rose-500/30 shadow-md shadow-rose-500/20 hover:shadow-lg hover:-translate-y-0.5;
   }
   .btn-ghost {
-    @apply btn text-slate-600 hover:bg-slate-100/80 focus:ring-slate-200/50;
+    @apply btn text-vms-body hover:bg-vms-tint focus:ring-vms-border/50;
   }
   .btn-sm  { @apply text-xs px-4 py-2 rounded-lg; }
   .btn-md  { @apply text-sm px-5 py-2.5; }
@@ -60,22 +60,22 @@
   .step-tab {
     @apply flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-semibold
            cursor-pointer transition-all duration-150 select-none;
-    border-color: theme('colors.slate.200');
-    color: theme('colors.slate.400');
+    border-color: theme('colors.vms.border');
+    color: theme('colors.vms.muted');
   }
   .step-tab .num {
     @apply w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold
            transition-all duration-150;
-    background: theme('colors.slate.200');
-    color: theme('colors.slate.400');
+    background: theme('colors.vms.border');
+    color: theme('colors.vms.muted');
   }
   .step-tab.active {
-    border-color: theme('colors.navy.700');
-    color: theme('colors.navy.700');
-    background: theme('colors.navy.50');
+    border-color: theme('colors.vms.700');
+    color: theme('colors.vms.700');
+    background: theme('colors.vms.50');
   }
   .step-tab.active .num {
-    background: theme('colors.navy.700');
+    background: theme('colors.vms.700');
     color: #fff;
   }
   .step-tab.done {
@@ -89,10 +89,10 @@
 
   /* ── Card ──────────────────────────────────────────────────── */
   .panel-card {
-    @apply bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5 transition-shadow hover:shadow-md;
+    @apply bg-vms-panel rounded-2xl shadow-sm border border-vms-border overflow-hidden mb-5 transition-shadow hover:shadow-md;
   }
   .panel-card-header {
-    @apply bg-slate-50 border-b border-slate-100 text-slate-800 px-6 py-4 flex items-center gap-3;
+    @apply bg-vms-shell border-b border-vms-border text-vms-text px-6 py-4 flex items-center gap-3;
   }
   .panel-card-header h2 {
     @apply text-sm font-bold tracking-tight;
@@ -103,18 +103,18 @@
 
   /* ── Section label ─────────────────────────────────────────── */
   .section-label {
-    @apply text-[13px] font-bold uppercase tracking-[0.1em] text-slate-800
+    @apply text-[13px] font-bold uppercase tracking-[0.1em] text-vms-text
            flex items-center gap-4 mt-8 mb-5;
   }
   .section-label::after {
     content: '';
-    @apply flex-1 h-[1px] bg-gradient-to-r from-slate-200 to-transparent;
+    @apply flex-1 h-[1px] bg-gradient-to-r from-vms-border to-transparent;
   }
 
   /* ── Permit list card ──────────────────────────────────────── */
   .permit-card {
-    @apply bg-white border border-slate-100 rounded-2xl p-6 shadow-sm
-           hover:shadow-lg hover:border-navy-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer;
+    @apply bg-vms-panel border border-vms-border rounded-2xl p-6 shadow-sm
+           hover:shadow-lg hover:border-vms-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer;
   }
 
   /* ── Status badge ──────────────────────────────────────────── */
@@ -124,6 +124,6 @@
   }
   .badge-submitted { @apply bg-blue-100   text-blue-700; }
   .badge-approved  { @apply bg-green-100  text-green-700; }
-  .badge-draft     { @apply bg-slate-100  text-slate-500; }
+  .badge-draft     { @apply bg-vms-tint   text-vms-muted; }
   .badge-rejected  { @apply bg-red-100    text-red-600; }
 }

@@ -81,7 +81,7 @@ export default function SignatureUploadCard({ className = '' }) {
     <section className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy-50 text-navy-700">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-vms-50 text-vms-700">
             <PenLine size={20} />
           </div>
           <div>

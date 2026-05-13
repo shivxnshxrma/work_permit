@@ -15,7 +15,7 @@ export function Field({ label, error, required, className = '', children, ...pro
         <input
           id={id}
           className={cn(
-            "field-input transition-all duration-200 focus:ring-2 focus:ring-navy-500/20 hover:border-navy-300",
+            "field-input transition-all duration-200 focus:ring-2 focus:ring-vms-500/20 hover:border-vms-300",
             error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
           )}
           {...props}
@@ -51,7 +51,7 @@ export function YesNo({ id, value, onChange }) {
               ? opt === 'Yes'
                 ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm shadow-emerald-500/20'
                 : 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm shadow-rose-500/20'
-              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
+              : 'bg-white border-vms-border text-vms-muted hover:border-vms-300 hover:bg-vms-shell'
           )}
         >
           {opt}
@@ -67,12 +67,12 @@ export function CheckPill({ label, checked, onChange }) {
     <label className={cn(
       "flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium cursor-pointer transition-all duration-200 select-none",
       checked
-        ? 'border-navy-600 bg-navy-50 text-navy-800 shadow-sm shadow-navy-500/10'
-        : 'border-slate-200 text-slate-600 hover:border-navy-300 hover:bg-slate-50'
+        ? 'border-vms-600 bg-vms-50 text-vms-800 shadow-sm shadow-vms-500/10'
+        : 'border-vms-border text-vms-body hover:border-vms-300 hover:bg-vms-shell'
     )}>
       <input
         type="checkbox"
-        className="w-4 h-4 accent-navy-600 rounded border-slate-300 transition-all duration-200"
+        className="w-4 h-4 accent-vms-600 rounded border-vms-border transition-all duration-200"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
@@ -83,7 +83,7 @@ export function CheckPill({ label, checked, onChange }) {
 
 // Section separator
 export function SectionLabel({ children }) {
-  return <div className="section-label text-navy-800 font-semibold tracking-tight">{children}</div>;
+  return <div className="section-label text-vms-800 font-semibold tracking-tight">{children}</div>;
 }
 
 export function InfoHint({ text }) {
@@ -92,7 +92,7 @@ export function InfoHint({ text }) {
       <button
         type="button"
         tabIndex={-1}
-        className="inline-flex items-center justify-center w-5 h-5 rounded-full border border-slate-300 text-slate-500 bg-white hover:text-navy-700 hover:border-navy-400 transition-colors"
+        className="inline-flex items-center justify-center w-5 h-5 rounded-full border border-vms-border text-vms-muted bg-white hover:text-vms-700 hover:border-vms-400 transition-colors"
       >
         <Info size={12} />
       </button>
@@ -123,7 +123,7 @@ export function Spinner({ size = 5 }) {
 export function StatusBadge({ status }) {
   const map = {
     approved:  'bg-emerald-100 text-emerald-800 border-emerald-200',
-    draft:     'bg-slate-100 text-slate-700 border-slate-200',
+    draft:     'bg-vms-tint text-vms-body border-vms-border',
     stage_1_rejected:  'bg-rose-100 text-rose-800 border-rose-200',
     stage_2_rejected:  'bg-rose-100 text-rose-800 border-rose-200',
     pending:   'bg-amber-100 text-amber-800 border-amber-200'
@@ -141,12 +141,30 @@ export function StatusBadge({ status }) {
 export function EmptyState({ icon: Icon, title, subtitle, action }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-        <Icon size={24} className="text-slate-400" />
+      <div className="w-14 h-14 bg-vms-tint rounded-full flex items-center justify-center mb-4">
+        <Icon size={24} className="text-vms-muted" />
       </div>
-      <p className="font-semibold text-slate-700 mb-1">{title}</p>
-      <p className="text-sm text-slate-400 mb-6 max-w-xs">{subtitle}</p>
+      <p className="font-semibold text-vms-body mb-1">{title}</p>
+      <p className="text-sm text-vms-muted mb-6 max-w-xs">{subtitle}</p>
       {action}
     </div>
+  );
+}
+
+export function AuthFooter() {
+  return (
+    <p className="mt-6 text-center text-xs font-medium text-vms-100/80">
+      Copyright &copy; 2026 Work Permit System. Powered by Mneo.
+    </p>
+  );
+}
+
+export function AppLogo({ className = '' }) {
+  return (
+    <img
+      src="/mneo.png"
+      alt="Mneo logo"
+      className={cn('h-10 w-10 object-contain', className)}
+    />
   );
 }

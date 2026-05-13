@@ -12,7 +12,7 @@ function InfoCard({ icon: Icon, title, children }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
       <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
-        <Icon size={15} className="text-navy-700" />
+        <Icon size={15} className="text-vms-700" />
         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-600">{title}</h3>
       </div>
       <div className="px-5 py-4 space-y-2.5">{children}</div>
@@ -142,7 +142,7 @@ export default function PermitReviewContent({ permit }) {
                   href={permit.group_insurance_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-navy-700 hover:text-navy-900 hover:underline"
+                  className="text-vms-700 hover:text-vms-900 hover:underline"
                 >
                   {fd.groupInsuranceFileName || permit.group_insurance_file_name || 'View document'}
                 </a>

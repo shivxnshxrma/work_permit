@@ -21,7 +21,7 @@ function StatSelector({ activeKey, stats, onSelect }) {
           key={key}
           type="button"
           onClick={() => onSelect(key)}
-          className={`rounded-2xl p-5 text-left transition-all duration-200 border-2 relative overflow-hidden group ${color} ${activeKey === key ? 'border-navy-700 shadow-md ring-2 ring-navy-700/20' : 'border-transparent hover:brightness-95 hover:shadow-sm'
+          className={`rounded-2xl p-5 text-left transition-all duration-200 border-2 relative overflow-hidden group ${color} ${activeKey === key ? 'border-vms-700 shadow-md ring-2 ring-vms-700/20' : 'border-transparent hover:brightness-95 hover:shadow-sm'
             }`}
         >
           <p className="text-xs font-bold uppercase tracking-wider mb-2 opacity-80 group-hover:opacity-100">{label}</p>
@@ -37,12 +37,12 @@ function PermitListCard({ permit, isActive, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(permit.id)}
-      className={`w-full text-left rounded-2xl border p-5 transition-all duration-200 group ${isActive ? 'border-navy-700 bg-navy-50/30 shadow-md' : 'border-slate-100 bg-white hover:border-navy-200 hover:shadow-sm hover:-translate-y-0.5'
+      className={`w-full text-left rounded-2xl border p-5 transition-all duration-200 group ${isActive ? 'border-vms-700 bg-vms-50/30 shadow-md' : 'border-slate-100 bg-white hover:border-vms-200 hover:shadow-sm hover:-translate-y-0.5'
         }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className={`text-sm font-bold tracking-tight ${isActive ? 'text-navy-900' : 'text-slate-900 group-hover:text-navy-700'}`}>
+          <p className={`text-sm font-bold tracking-tight ${isActive ? 'text-vms-900' : 'text-slate-900 group-hover:text-vms-700'}`}>
             {permit.serial_number || `Permit #${permit.id}`}
           </p>
           <p className="text-xs font-medium text-slate-500 mt-1">{permit.owner_name} · {permit.owner_email}</p>
@@ -201,7 +201,7 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h3 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <FileText className="text-navy-600" size={20} />
+              <FileText className="text-vms-600" size={20} />
               Permit Statistics
             </h3>
             <p className="text-sm text-slate-500 mt-1.5">
@@ -289,7 +289,7 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
         <div>
           {loadingDetail ? (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
-              <RefreshCw size={24} className="mx-auto text-navy-300 animate-spin mb-4" />
+              <RefreshCw size={24} className="mx-auto text-vms-300 animate-spin mb-4" />
               <p className="text-sm font-medium text-slate-500">Loading permit details...</p>
             </div>
           ) : selectedPermit ? (

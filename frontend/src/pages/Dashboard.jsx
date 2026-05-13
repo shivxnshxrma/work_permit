@@ -52,9 +52,9 @@ function PermitCard({ permit, onDelete }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-navy-50 rounded-lg flex items-center justify-center
-                          flex-shrink-0 group-hover:bg-navy-100 transition-colors">
-            <FileText size={16} className="text-navy-700" />
+          <div className="w-9 h-9 bg-vms-50 rounded-lg flex items-center justify-center
+                          flex-shrink-0 group-hover:bg-vms-100 transition-colors">
+            <FileText size={16} className="text-vms-700" />
           </div>
           <div>
             <p className="font-semibold text-sm text-slate-900 leading-tight">
@@ -121,7 +121,7 @@ function StatsBar({ permits }) {
   const rejected = permits.filter((p) => p.status === 'stage_1_rejected' || p.status === 'stage_2_rejected').length;
 
   const tiles = [
-    { label: 'Total', value: total, color: 'bg-navy-50  text-navy-700' },
+    { label: 'Total', value: total, color: 'bg-vms-50  text-vms-700' },
     { label: 'Submitted', value: submitted, color: 'bg-blue-50  text-blue-700' },
     { label: 'Approved', value: approved, color: 'bg-green-50 text-green-700' },
     { label: 'Reinitiated', value: rejected, color: 'bg-red-50 text-red-700' },

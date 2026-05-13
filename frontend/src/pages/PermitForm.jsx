@@ -538,7 +538,7 @@ export default function PermitForm() {
         <div className="hidden sm:flex items-center gap-2">
           <div className="w-32 h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-navy-700 rounded-full transition-all duration-300"
+              className="h-full bg-vms-700 rounded-full transition-all duration-300"
               style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
             />
           </div>
@@ -595,7 +595,7 @@ export default function PermitForm() {
                       type="checkbox"
                       checked={form[id]}
                       onChange={(e) => set(id, e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-navy-700 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 text-vms-700 cursor-pointer"
                     />
                     <span className="text-sm font-semibold text-slate-800">{String.fromCharCode(65 + idx)}</span>
                   </span>
@@ -690,7 +690,7 @@ export default function PermitForm() {
                   {form.groupInsuranceAcknowledged ? (
                     <p className="mt-1 text-xs font-semibold text-emerald-700">Terms acknowledged.</p>
                   ) : (
-                    <button type="button" onClick={() => setShowGroupInsuranceTerms(true)} className="mt-2 text-xs font-semibold text-navy-700 hover:text-navy-900">
+                    <button type="button" onClick={() => setShowGroupInsuranceTerms(true)} className="mt-2 text-xs font-semibold text-vms-700 hover:text-vms-900">
                       Open terms and conditions
                     </button>
                   )}

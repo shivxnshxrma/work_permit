@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Field, Spinner } from '../components/FormElements';
+import { AppLogo, AuthFooter, Field, Spinner } from '../components/FormElements';
 import client from '../api/client';
 
 export default function ForgotPassword() {
@@ -41,18 +41,14 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-900 via-navy-700 to-navy-600
+    <div className="min-h-screen bg-gradient-to-br from-vms-text via-vms-deep to-vms-primary
                     flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
 
         {/* Brand strip */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <span className="w-10 h-10 bg-red-700 rounded-lg flex items-center justify-center
-                           font-bold text-white text-sm">DS</span>
-          <div>
-            <p className="text-white font-semibold text-sm">DS Group</p>
-            <p className="text-navy-200 text-xs">Work Permit System</p>
-          </div>
+          <AppLogo className="h-12 w-12 rounded-xl bg-white/10 p-1.5" />
+          <p className="text-2xl font-bold tracking-tight text-white">Work Permit System</p>
         </div>
 
         {/* Card */}
@@ -98,13 +94,14 @@ export default function ForgotPassword() {
           )}
 
           <p className="mt-6 text-center text-sm text-slate-500">
-            <Link to="/login" className="font-semibold text-navy-700 hover:underline
+            <Link to="/login" className="font-semibold text-vms-700 hover:underline
                                         inline-flex items-center gap-1">
               <ArrowLeft size={14} />
               Back to sign in
             </Link>
           </p>
         </div>
+        <AuthFooter />
       </div>
     </div>
   );

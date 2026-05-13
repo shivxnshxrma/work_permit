@@ -1,6 +1,6 @@
 export default function PermitStatsBar({ permits }) {
   const tiles = [
-    { label: 'Total', value: permits.length, color: 'bg-navy-50 text-navy-700' },
+    { label: 'Total', value: permits.length, color: 'bg-vms-50 text-vms-700' },
     { label: 'Stage 1', value: permits.filter((permit) => permit.status === 'stage_1').length, color: 'bg-yellow-50 text-yellow-700' },
     { label: 'Stage 2', value: permits.filter((permit) => permit.status === 'stage_2').length, color: 'bg-orange-50 text-orange-700' },
     { label: 'Reinitiated', value: permits.filter((permit) => permit.status === 'stage_1_rejected' || permit.status === 'stage_2_rejected').length, color: 'bg-red-50 text-red-700' },

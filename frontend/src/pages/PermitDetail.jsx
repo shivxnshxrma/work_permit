@@ -85,8 +85,8 @@ export default function PermitDetail() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-navy-50 rounded-xl flex items-center justify-center">
-            <FileText size={20} className="text-navy-700" />
+          <div className="w-11 h-11 bg-vms-50 rounded-xl flex items-center justify-center">
+            <FileText size={20} className="text-vms-700" />
           </div>
           <div>
             <div className="flex items-center gap-2">

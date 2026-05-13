@@ -63,19 +63,19 @@ export default function ApprovalDashboard() {
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <ClipboardCheck size={18} className="text-navy-700" />
+            <ClipboardCheck size={18} className="text-vms-700" />
             Review Queue
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
             Showing permits pending your action as a{' '}
-            <span className="font-semibold text-navy-700">{stageLabel}</span> approver.
+            <span className="font-semibold text-vms-700">{stageLabel}</span> approver.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Live count badge */}
           {permits.length > 0 && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-navy-50 text-navy-700 text-xs font-bold border border-navy-100">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-vms-50 text-vms-700 text-xs font-bold border border-vms-100">
               <ShieldCheck size={12} />
               {permits.length} pending
             </span>
