@@ -1,20 +1,13 @@
 {
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/permits/:path*",
-      "destination": "https://workpermit-backend-production.up.railway.app/api/permits/:path*"
+      "src": "/api/(.*)",
+      "dest": "https://workpermit-backend-production.up.railway.app/api/$1",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     },
     {
-      "source": "/api/auth/:path*",
-      "destination": "https://workpermit-backend-production.up.railway.app/api/auth/:path*"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://workpermit-backend-production.up.railway.app/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
