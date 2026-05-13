@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://work-permit.onrender.com/api/$1"
+      "destination": "https://workpermit-backend-production.up.railway.app/api/$1"
     },
     {
       "source": "/(.*)",
