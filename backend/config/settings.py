@@ -24,7 +24,7 @@ def clean_origin(origin):
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = ['work-permit.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['workpermit-backend-production.up.railway.app', 'localhost', '127.0.0.1']
 
 # Add Render's dynamic external hostname
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
