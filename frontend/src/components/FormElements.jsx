@@ -165,7 +165,7 @@ export function EmptyState({ icon: Icon, title, subtitle, action }) {
 export function AuthFooter() {
   return (
     <p className="mt-6 text-center text-xs font-medium text-vms-100/80">
-      Copyright &copy; 2026 Work Permit System. Powered by Mneo.
+      Copyright &copy; 2026 Work Permit System. Powered by M-Neo.
     </p>
   );
 }

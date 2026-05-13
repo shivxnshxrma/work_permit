@@ -84,6 +84,15 @@ PARTICIPANT_SIGNATURE_NAME_FIELDS = {
     'attendant_sign': 'attendant',
     'signature_107sgre': 'supervisor',
 }
+PARTICIPANT_NAME_FIELDS = {
+    'entrant_name': 'entrant',
+    'attendant_name': 'attendant',
+    'supervisor_name': 'supervisor',
+}
+SHIFT_TIME_TEXT_FIELDS = {
+    'signature_115cwpw': 'shiftStart',
+    'signature_116sgcu': 'shiftEnd',
+}
 
 DEFAULT_TEXT_FONT = '/Helvetica'
 DEFAULT_TEXT_SIZE = 7
@@ -284,6 +293,13 @@ def _text_value(field_name, value):
     )
 
 
+def _compact_hour_text(value):
+    parts = str(value).strip().split(':')
+    if len(parts) >= 2 and parts[0].isdigit():
+        return f'{int(parts[0])}:{parts[1][:2]}'
+    return str(value).strip()
+
+
 def _normalize_time(value):
     raw = (value or '').strip()
     if not raw:
@@ -293,7 +309,7 @@ def _normalize_time(value):
     if upper.endswith('AM') or upper.endswith('PM'):
         period = upper[-2:]
         time_text = upper[:-2].strip()
-        return time_text, period
+        return _compact_hour_text(time_text), period
 
     parts = raw.split(':')
     if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
@@ -301,7 +317,7 @@ def _normalize_time(value):
         minute = parts[1][:2]
         period = 'AM' if hour < 12 else 'PM'
         display_hour = hour % 12 or 12
-        return f'{display_hour:02d}:{minute}', period
+        return f'{display_hour}:{minute}', period
 
     return raw, ''
 
@@ -446,8 +462,8 @@ def _ensure_page_helvetica(writer, page):
     return font_name
 
 
-def _stamp_widget_text(writer, field_values):
-    widget_rects = _collect_widget_rects(writer)
+def _stamp_widget_text(writer, field_values, widget_rects):
+    # widget_rects = _collect_widget_rects(writer)
 
     for field_name, value in field_values.items():
         text = (value or '').strip()
@@ -472,8 +488,8 @@ def _stamp_widget_text(writer, field_values):
             writer._merge_content_stream_to_page(page, content)
 
 
-def _stamp_signature_images(writer, signature_images):
-    widget_rects = _collect_widget_rects(writer)
+def _stamp_signature_images(writer, signature_images, widget_rects):
+    # widget_rects = _collect_widget_rects(writer)
 
     for field_name, signature_image in signature_images.items():
         if not signature_image:
@@ -518,6 +534,9 @@ def build_filled_permit_pdf(permit):
     writer.set_need_appearances_writer(True)
     _promote_child_text_widgets(writer, PROMOTE_CHILD_TEXT_FIELDS)
     checkbox_on_values = _collect_checkbox_on_values(reader)
+
+
+    widget_rects = _collect_widget_rects(writer)
 
     valid_from_day, valid_from_month, valid_from_year = _date_parts(permit.valid_from)
     valid_to_day, valid_to_month, valid_to_year = _date_parts(permit.valid_to)
@@ -628,15 +647,25 @@ def build_filled_permit_pdf(permit):
         field_name: form_data.get(form_key, '')
         for field_name, form_key in PARTICIPANT_SIGNATURE_NAME_FIELDS.items()
     }
+    participant_names = {
+        field_name: form_data.get(form_key, '')
+        for field_name, form_key in PARTICIPANT_NAME_FIELDS.items()
+    }
+    shift_times = {
+        field_name: start_shift_text if form_key == 'shiftStart' else end_shift_text
+        for field_name, form_key in SHIFT_TIME_TEXT_FIELDS.items()
+    }
 
     approval_name_text_fields = {
         field_name: approval_text_fields.get(field_name, '')
         for field_name in APPROVAL_NAME_FIELDS
     }
 
-    _stamp_widget_text(writer, approval_name_text_fields)
-    _stamp_widget_text(writer, participant_signature_names)
-    _stamp_signature_images(writer, approval_signature_images)
+    _stamp_widget_text(writer, approval_name_text_fields, widget_rects)
+    _stamp_widget_text(writer, participant_names, widget_rects)
+    _stamp_widget_text(writer, shift_times, widget_rects)
+    _stamp_widget_text(writer, participant_signature_names, widget_rects)
+    _stamp_signature_images(writer, approval_signature_images, widget_rects)
 
     # Remove widget annotations after flattening so all values remain visible
     # in PDF viewers that do not honor interactive form appearances.
