@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/permits/:path*",
+      "destination": "https://workpermit-backend-production.up.railway.app/api/permits/:path*"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "https://workpermit-backend-production.up.railway.app/api/auth/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://workpermit-backend-production.up.railway.app/api/:path*"
     },
