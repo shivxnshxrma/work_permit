@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Field, Spinner } from '../components/FormElements';
 import client from '../api/client';
 import useAuthStore from '../store/authStore';
+import { authAPI } from '../api/client';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -32,10 +33,7 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const response = await client.post('/permits/admin/login/', {
-        email: form.email,
-        password: form.password,
-      });
+      const response = await authAPI.login({ email: form.email, password: form.password });
       persistSession(response.data.user);
       localStorage.setItem('admin_id', response.data.user_id);
       localStorage.setItem('admin_email', response.data.email);
