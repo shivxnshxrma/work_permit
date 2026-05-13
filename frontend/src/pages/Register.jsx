@@ -127,10 +127,12 @@ export default function Register() {
               </Field>
 
               <Field label="Confirm password" id="password2" required error={errors.password2}>
+                <div className="relative">
                 <input id="password2" type={showPwd ? 'text' : 'password'}
                   value={form.password2} onChange={(e) => set('password2', e.target.value)}
                   className={`field-input ${errors.password2 ? 'error' : ''}`}
                   placeholder="Repeat password" autoComplete="new-password" />
+                </div>
                 {errors.password2 && <p className="field-error">{errors.password2}</p>}
               </Field>
             </div>

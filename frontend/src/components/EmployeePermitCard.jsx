@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { FileText, Eye, XCircle, Calendar, MapPin, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PermitStatusBadge from './PermitStatusBadge';
 import { permitsAPI } from '../api/client';
+import { Spinner } from './FormElements';
 
 function canCancelPermit(status) {
   return !['stage_1_rejected', 'stage_2_rejected', 'approved', 'cancelled'].includes(status);
@@ -10,18 +12,22 @@ function canCancelPermit(status) {
 
 export default function EmployeePermitCard({ permit, onCancelled }) {
   const navigate = useNavigate();
+  const [cancelling, setCancelling] = useState(false);
 
   const handleCancel = async (event) => {
     event.stopPropagation();
     if (!canCancelPermit(permit.status)) return;
     if (!window.confirm(`Cancel permit ${permit.serial_number || permit.id}?`)) return;
 
+    setCancelling(true);
     try {
       await permitsAPI.cancel(permit.id);
       toast.success('Permit cancelled.');
       onCancelled?.(permit.id);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Could not cancel permit.');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -83,8 +89,8 @@ export default function EmployeePermitCard({ permit, onCancelled }) {
           <Eye size={12} /> Review
         </button>
         {canCancelPermit(permit.status) && (
-          <button onClick={handleCancel} className="btn-ghost btn-sm gap-1 text-red-500 hover:bg-red-50 ml-auto">
-            <XCircle size={12} /> Cancel
+          <button onClick={handleCancel} disabled={cancelling} className="btn-ghost btn-sm gap-1 text-red-500 hover:bg-red-50 ml-auto disabled:opacity-70">
+            {cancelling ? <Spinner size={3} /> : <XCircle size={12} />} {cancelling ? 'Cancelling...' : 'Cancel'}
           </button>
         )}
       </div>

@@ -5,13 +5,14 @@ import toast from 'react-hot-toast';
 import client from '../api/client';
 import ApproversManager from '../components/ApproversManager';
 import AdminPermitStatsExplorer from '../components/admin/AdminPermitStatsExplorer';
-import { AppLogo } from '../components/FormElements';
+import { AppLogo, PageLoader, Spinner } from '../components/FormElements';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!localStorage.getItem('admin_id')) {
@@ -34,20 +35,21 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     if (!window.confirm('Log out of the admin dashboard?')) return;
-    try { await client.post('/auth/logout/'); } catch { /* ignore */ }
-    localStorage.removeItem('user');
-    localStorage.removeItem('admin_id');
-    localStorage.removeItem('admin_email');
-    toast.success('Logged out.');
-    navigate('/admin/login');
+    setLoggingOut(true);
+    try {
+      try { await client.post('/auth/logout/'); } catch { /* ignore */ }
+      localStorage.removeItem('user');
+      localStorage.removeItem('admin_id');
+      localStorage.removeItem('admin_email');
+      toast.success('Logged out.');
+      navigate('/admin/login');
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-vms-body">Loading admin dashboard...</p>
-      </div>
-    );
+    return <div className="min-h-screen"><PageLoader label="Loading admin dashboard..." /></div>;
   }
 
   return (
@@ -66,10 +68,11 @@ export default function AdminDashboard() {
           </div>
           <button
             onClick={handleLogout}
+            disabled={loggingOut}
             className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-200 border border-white/10 backdrop-blur-md active:scale-95"
           >
-            <LogOut size={16} />
-            Logout
+            {loggingOut ? <Spinner size={4} /> : <LogOut size={16} />}
+            {loggingOut ? 'Signing out...' : 'Logout'}
           </button>
         </div>
       </div>

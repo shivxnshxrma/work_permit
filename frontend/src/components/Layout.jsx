@@ -1,11 +1,11 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, LogOut, Plus, ClipboardCheck, ChevronRight,
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
-import { AppLogo } from './FormElements';
+import { AppLogo, Spinner } from './FormElements';
 
 // ── Route guard ───────────────────────────────────────────────────────────
 export function ProtectedRoute() {
@@ -34,6 +34,7 @@ export function AppLayout() {
   const { user, logout, refreshProfile } = useAuthStore();
   const navigate  = useNavigate();
   const { pathname } = useLocation();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     refreshProfile();
@@ -41,8 +42,13 @@ export function AppLayout() {
 
   const handleLogout = async () => {
     if (!window.confirm('Log out of your account?')) return;
-    await logout();
-    navigate('/login');
+    setLoggingOut(true);
+    try {
+      await logout();
+      navigate('/login');
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const navItems = [
@@ -93,12 +99,13 @@ export function AppLayout() {
             </div>
             <button
               onClick={handleLogout}
+              disabled={loggingOut}
               className="flex items-center gap-1 text-white/70 hover:text-white
                          text-xs font-semibold transition-colors px-2 py-1.5
-                         rounded-lg hover:bg-white/10"
+                         rounded-lg hover:bg-white/10 disabled:opacity-70"
             >
-              <LogOut size={13} />
-              <span className="hidden sm:block">Logout</span>
+              {loggingOut ? <Spinner size={3} /> : <LogOut size={13} />}
+              <span className="hidden sm:block">{loggingOut ? 'Signing out...' : 'Logout'}</span>
             </button>
           </div>
         </div>

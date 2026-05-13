@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import client from '../../api/client';
 import PermitStatusBadge from '../PermitStatusBadge';
 import PermitReviewContent, { PermitApprovalTimeline } from '../permit/PermitReviewContent';
+import { Spinner } from '../FormElements';
 
 const STAT_CONFIG = [
   { key: 'total', label: 'Total', color: 'bg-slate-100 text-slate-900' },
@@ -216,6 +217,7 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
                 type="date"
                 value={startDate}
                 onChange={(event) => setStartDate(event.target.value)}
+                max={endDate || undefined}
                 className="field-input min-w-[150px] !py-2 !text-sm bg-white"
               />
             </label>
@@ -225,6 +227,7 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
                 type="date"
                 value={endDate}
                 onChange={(event) => setEndDate(event.target.value)}
+                min={startDate || undefined}
                 className="field-input min-w-[150px] !py-2 !text-sm bg-white"
               />
             </label>
@@ -265,7 +268,10 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
           </div>
 
           {loadingList ? (
-            <p className="text-sm text-slate-500 py-10 text-center">Loading permits...</p>
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+              <Spinner size={4} />
+              <span>Loading permits...</span>
+            </div>
           ) : permits.length > 0 ? (
             <div className="space-y-3 max-h-[125vh] overflow-y-auto pr-1">
               {permits.map((permit) => (
@@ -289,7 +295,9 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
         <div>
           {loadingDetail ? (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
-              <RefreshCw size={24} className="mx-auto text-vms-300 animate-spin mb-4" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-vms-tint text-vms-700">
+                <Spinner size={6} />
+              </div>
               <p className="text-sm font-medium text-slate-500">Loading permit details...</p>
             </div>
           ) : selectedPermit ? (

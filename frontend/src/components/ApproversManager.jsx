@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Trash2, Loader } from 'lucide-react';
+import { UserPlus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import client from '../api/client';
+import { PageLoader, Spinner } from './FormElements';
 
 export default function ApproversManager({ onApproverChange }) {
   const [approvers, setApprovers] = useState([]);
@@ -12,6 +13,8 @@ export default function ApproversManager({ onApproverChange }) {
   const [selectedUser, setSelectedUser] = useState('');
   const [requiresApprovalReason, setRequiresApprovalReason] = useState(false);
   const [counts, setCounts] = useState({ stage_1: 0, stage_2: 0 });
+  const [busyApproverId, setBusyApproverId] = useState(null);
+  const [busyAction, setBusyAction] = useState('');
 
   useEffect(() => {
     fetchApprovers();
@@ -95,6 +98,8 @@ export default function ApproversManager({ onApproverChange }) {
   const handleRemoveApprover = async (approverId) => {
     if (!window.confirm('Remove this approver?')) return;
 
+    setBusyApproverId(approverId);
+    setBusyAction('remove');
     try {
       await client.delete(`/permits/admin/approvers/${approverId}/`);
       toast.success('Approver removed.');
@@ -102,10 +107,15 @@ export default function ApproversManager({ onApproverChange }) {
       onApproverChange?.();
     } catch (error) {
       toast.error('Failed to remove approver.');
+    } finally {
+      setBusyApproverId(null);
+      setBusyAction('');
     }
   };
 
   const handleToggleAuthorityApprover = async (approver) => {
+    setBusyApproverId(approver.id);
+    setBusyAction('toggle');
     try {
       await client.patch(`/permits/admin/approvers/${approver.id}/`, {
         requires_reason_on_approval: !approver.requires_reason_on_approval,
@@ -115,11 +125,14 @@ export default function ApproversManager({ onApproverChange }) {
       onApproverChange?.();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update authority approver.');
+    } finally {
+      setBusyApproverId(null);
+      setBusyAction('');
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-slate-600">Loading approvers...</div>;
+    return <PageLoader label="Loading approvers..." />;
   }
 
   return (
@@ -213,7 +226,7 @@ export default function ApproversManager({ onApproverChange }) {
             disabled={adding}
             className="btn-primary w-full h-[46px]"
             >
-            {adding ? <Loader size={16} className="animate-spin" /> : <UserPlus size={16} />}
+            {adding ? <Spinner size={4} /> : <UserPlus size={16} />}
             {adding ? 'Adding...' : 'Add Approver'}
             </button>
         </div>
@@ -256,21 +269,27 @@ export default function ApproversManager({ onApproverChange }) {
                           <button
                             type="button"
                             onClick={() => handleToggleAuthorityApprover(approver)}
+                            disabled={busyApproverId === approver.id}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                               approver.requires_reason_on_approval
                                 ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                                 : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }`}
+                            } disabled:opacity-70`}
                           >
-                            {approver.requires_reason_on_approval ? 'Revoke Auth' : 'Make Auth'}
+                            {busyApproverId === approver.id && busyAction === 'toggle' ? (
+                              <span className="inline-flex items-center gap-1.5"><Spinner size={3} /> Saving...</span>
+                            ) : (
+                              approver.requires_reason_on_approval ? 'Revoke Auth' : 'Make Auth'
+                            )}
                           </button>
                         )}
                         <button
                           onClick={() => handleRemoveApprover(approver.id)}
-                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+                          disabled={busyApproverId === approver.id}
+                          className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 disabled:opacity-70"
                           title="Remove approver"
                         >
-                          <Trash2 size={16} />
+                          {busyApproverId === approver.id && busyAction === 'remove' ? <Spinner size={4} /> : <Trash2 size={16} />}
                         </button>
                       </div>
                     </div>

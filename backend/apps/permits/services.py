@@ -641,7 +641,7 @@ def build_filled_permit_pdf(permit):
     # Remove widget annotations after flattening so all values remain visible
     # in PDF viewers that do not honor interactive form appearances.
     writer.remove_annotations(['/Widget'])
-    # writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
+    writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
 
     output = BytesIO()
     writer.write(output)

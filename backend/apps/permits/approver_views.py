@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.utils.dateparse import parse_date
 from PIL import Image
 
 from .models import WorkPermit, Approver, ApprovalLog
@@ -54,12 +55,38 @@ def _get_stage_2_available_actions(user, permit):
 def _signature_payload(user, request):
     signature_url = None
     if user.signature_image:
-        signature_url = request.build_absolute_uri(user.signature_image.url)
+        try:
+            signature_url = request.build_absolute_uri(user.signature_image.url)
+        except Exception:
+            # Fallback if request is somehow missing or malformed
+            signature_url = user.signature_image.url
 
     return {
         'has_signature': bool(user.signature_image),
         'signature_url': signature_url,
     }
+
+
+def _apply_date_filters(queryset, request):
+    start_date_raw = request.query_params.get('start_date')
+    end_date_raw = request.query_params.get('end_date')
+
+    start_date = parse_date(start_date_raw) if start_date_raw else None
+    end_date = parse_date(end_date_raw) if end_date_raw else None
+
+    if start_date_raw and not start_date:
+        return None, 'Invalid start date.'
+    if end_date_raw and not end_date:
+        return None, 'Invalid end date.'
+    if start_date and end_date and end_date < start_date:
+        return None, 'End date cannot be before start date.'
+
+    if start_date:
+        queryset = queryset.filter(created_at__date__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(created_at__date__lte=end_date)
+
+    return queryset, None
 
 
 def _snapshot_approval_signature(user, approval_log):
@@ -194,7 +221,11 @@ def approver_permits(request):
         ]
     ), request.user).select_related('user').order_by('-created_at')
 
-    serializer = WorkPermitListSerializer(permits, many=True)
+    permits, error = _apply_date_filters(permits, request)
+    if error:
+        return Response({'detail': error}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = WorkPermitListSerializer(permits, many=True, context={'request': request})
     permit_data = serializer.data
     for item, permit in zip(permit_data, permits):
         item['available_actions'] = (
@@ -227,7 +258,7 @@ def approver_permit_detail(request, pk):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    serializer = WorkPermitDetailSerializer(permit)
+    serializer = WorkPermitDetailSerializer(permit, context={'request': request})
     return Response(serializer.data)
 
 
@@ -333,7 +364,7 @@ def approve_permit(request, pk):
         except Exception as exc:
             email_error = str(exc)
 
-    serializer = WorkPermitDetailSerializer(permit)
+    serializer = WorkPermitDetailSerializer(permit, context={'request': request})
     if current_stage == 1:
         detail = 'Permit approved and moved to Stage 2.'
     elif permit.status == WorkPermit.Status.APPROVED:
@@ -412,7 +443,7 @@ def reject_permit(request, pk):
     permit.rejection_reason = reason
     permit.save()
 
-    serializer = WorkPermitDetailSerializer(permit)
+    serializer = WorkPermitDetailSerializer(permit, context={'request': request})
     return Response({
         'detail': 'Permit sent back for reinitiation. Employee must create a new permit to resubmit.',
         'permit': serializer.data,

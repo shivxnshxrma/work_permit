@@ -63,6 +63,42 @@ def permit_create(request):
     )
 
 
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def permit_download(request, pk):
+#     """Download the PDF for an approved or reinitialized permit owned by the authenticated user."""
+#     try:
+#         permit = WorkPermit.objects.get(pk=pk, user=request.user)
+#     except WorkPermit.DoesNotExist:
+#         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+#     # Allow download for approved permits and reinitialized permits
+#     allowed_statuses = [
+#         WorkPermit.Status.APPROVED,
+#         WorkPermit.Status.STAGE_1_REJECTED,
+#         WorkPermit.Status.STAGE_2_REJECTED,
+#     ]
+    
+#     if permit.status not in allowed_statuses:
+#         return Response(
+#             {'detail': 'This permit cannot be downloaded. Only approved or reinitialized permits can be downloaded.'},
+#             status=status.HTTP_400_BAD_REQUEST,
+#         )
+
+#     attach_permit_pdf(permit)
+#     permit.save(update_fields=['pdf_file'])
+
+#     if not permit.pdf_file:
+#         return Response(
+#             {'detail': 'No PDF is available for this permit.'},
+#             status=status.HTTP_404_NOT_FOUND,
+#         )
+
+#     permit.pdf_file.open('rb')
+#     filename = permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf'
+#     return FileResponse(permit.pdf_file, as_attachment=True, filename=filename)
+# backend/apps/permits/views.py
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def permit_download(request, pk):
@@ -85,8 +121,11 @@ def permit_download(request, pk):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    attach_permit_pdf(permit)
-    permit.save(update_fields=['pdf_file'])
+    # FIX: Don't re-generate the PDF on every download!
+    # Only generate it if it's missing (it should have been generated during approval).
+    if not permit.pdf_file:
+        attach_permit_pdf(permit)
+        permit.save(update_fields=['pdf_file'])
 
     if not permit.pdf_file:
         return Response(
@@ -97,7 +136,6 @@ def permit_download(request, pk):
     permit.pdf_file.open('rb')
     filename = permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf'
     return FileResponse(permit.pdf_file, as_attachment=True, filename=filename)
-
 
 @api_view(['GET', 'DELETE', 'PATCH'])
 @permission_classes([IsAuthenticated])
@@ -160,7 +198,7 @@ def permit_submit_for_approval(request, pk):
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     if permit.status == WorkPermit.Status.STAGE_1:
-        serializer = WorkPermitDetailSerializer(permit)
+        serializer = WorkPermitDetailSerializer(permit, context={'request': request})
         return Response({
             'detail': 'Permit is already in Stage 1 review.',
             'permit': serializer.data,
@@ -177,7 +215,7 @@ def permit_submit_for_approval(request, pk):
     permit.current_stage = 1
     permit.save()
 
-    serializer = WorkPermitDetailSerializer(permit)
+    serializer = WorkPermitDetailSerializer(permit, context={'request': request})
     return Response({
         'detail': 'Permit submitted for approval. It is now in Stage 1 review.',
         'permit': serializer.data,

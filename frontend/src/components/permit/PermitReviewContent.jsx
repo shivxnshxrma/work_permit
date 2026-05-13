@@ -30,6 +30,15 @@ function Row({ label, value }) {
   );
 }
 
+function getGroupInsuranceDocumentMeta(permit, fd) {
+  const url = permit.group_insurance_url || '';
+  const name = fd.groupInsuranceFileName || permit.group_insurance_file_name || 'View document';
+  const source = `${url} ${name}`.toLowerCase();
+  const isPdf = source.includes('.pdf');
+  const isImage = ['.png', '.jpg', '.jpeg', '.webp'].some((ext) => source.includes(ext));
+  return { url, name, isPdf, isImage };
+}
+
 export function PermitApprovalTimeline({ permit }) {
   const logs = permit.approval_logs || [];
 
@@ -80,6 +89,7 @@ export function PermitApprovalTimeline({ permit }) {
 
 export default function PermitReviewContent({ permit }) {
   const fd = permit.form_data || {};
+  const groupInsuranceDoc = getGroupInsuranceDocumentMeta(permit, fd);
 
   return (
     <>
@@ -132,22 +142,59 @@ export default function PermitReviewContent({ permit }) {
           <Row label="HRA Date" value={fd.hraDate} />
         </InfoCard>
 
-        {(fd.groupInsuranceFileName || permit.group_insurance_url) && (
+        {(fd.groupInsuranceFileName || permit.group_insurance_url || permit.group_insurance_file_name) && (
           <InfoCard icon={FileText} title="Group Insurance">
             <Row label="Terms" value={fd.groupInsuranceAcknowledged ? 'Acknowledged' : ''} />
             <Row
               label="Document"
-              value={permit.group_insurance_url ? (
+              value={groupInsuranceDoc.url ? (
                 <a
-                  href={permit.group_insurance_url}
+                  href={groupInsuranceDoc.url}
                   target="_blank"
                   rel="noreferrer"
                   className="text-vms-700 hover:text-vms-900 hover:underline"
                 >
-                  {fd.groupInsuranceFileName || permit.group_insurance_file_name || 'View document'}
+                  {groupInsuranceDoc.name}
                 </a>
-              ) : fd.groupInsuranceFileName}
+              ) : groupInsuranceDoc.name}
             />
+            {/* {groupInsuranceDoc.url && (
+              <div className="pt-1">
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <a
+                    href={groupInsuranceDoc.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary btn-sm"
+                  >
+                    Open document
+                  </a>
+                  <a
+                    href={groupInsuranceDoc.url}
+                    download={groupInsuranceDoc.name}
+                    className="btn-ghost btn-sm"
+                  >
+                    Download
+                  </a>
+                </div>
+
+                {groupInsuranceDoc.isImage && (
+                  <img
+                    src={groupInsuranceDoc.url}
+                    alt={groupInsuranceDoc.name}
+                    className="max-h-64 w-full rounded-lg border border-slate-200 object-contain bg-slate-50"
+                  />
+                )}
+
+                {groupInsuranceDoc.isPdf && (
+                  <iframe
+                    src={groupInsuranceDoc.url}
+                    title={groupInsuranceDoc.name}
+                    className="h-72 w-full rounded-lg border border-slate-200 bg-white"
+                  />
+                )}
+              </div>
+            )} */}
           </InfoCard>
         )}
       </div>

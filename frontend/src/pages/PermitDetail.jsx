@@ -17,6 +17,9 @@ export default function PermitDetail() {
   const navigate = useNavigate();
   const [permit, setPermit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     permitsAPI.detail(id)
@@ -27,16 +30,20 @@ export default function PermitDetail() {
 
   const handleCancel = async () => {
     if (!window.confirm('Cancel this permit?')) return;
+    setCancelling(true);
     try {
       await permitsAPI.cancel(id);
       toast.success('Permit cancelled.');
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Could not cancel permit.');
+    } finally {
+      setCancelling(false);
     }
   };
 
   const handleDownload = async () => {
+    setDownloading(true);
     try {
       const { data } = await permitsAPI.download(id);
       const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
@@ -49,10 +56,13 @@ export default function PermitDetail() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to download permit PDF.');
+    } finally {
+      setDownloading(false);
     }
   };
 
   const handlePrint = async () => {
+    setPrinting(true);
     try {
       const { data } = await permitsAPI.download(id);
       const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
@@ -67,6 +77,8 @@ export default function PermitDetail() {
       setTimeout(() => window.URL.revokeObjectURL(url), 10000);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to print permit PDF.');
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -111,13 +123,13 @@ export default function PermitDetail() {
             </button>
           )}
           {['approved'].includes(permit.status) && (
-            <button onClick={handleDownload} className="btn-secondary btn-md">
-              <Download size={14} /> Download PDF
+            <button onClick={handleDownload} disabled={downloading} className="btn-secondary btn-md">
+              {downloading ? <Spinner size={4} /> : <Download size={14} />} {downloading ? 'Downloading...' : 'Download PDF'}
             </button>
           )}
           {/* {canCancelPermit(permit.status) && (
-            <button onClick={handleCancel} className="btn-danger btn-md">
-              <XCircle size={14} /> Cancel Permit
+            <button onClick={handleCancel} disabled={cancelling} className="btn-danger btn-md">
+              {cancelling ? <Spinner size={4} /> : <XCircle size={14} />} {cancelling ? 'Cancelling...' : 'Cancel Permit'}
             </button>
           )} */}
         </div>

@@ -119,6 +119,17 @@ export function Spinner({ size = 5 }) {
   );
 }
 
+export function PageLoader({ label = 'Loading...' }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-vms-tint text-vms-700">
+        <Spinner size={6} />
+      </div>
+      <p className="text-sm font-medium text-vms-body">{label}</p>
+    </div>
+  );
+}
+
 // Status badge
 export function StatusBadge({ status }) {
   const map = {

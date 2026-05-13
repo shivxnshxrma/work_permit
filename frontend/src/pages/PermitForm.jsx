@@ -77,6 +77,14 @@ const HRA_CHECKS = [
 
 const [GROUP_INSURANCE_TERMS_TITLE, ...GROUP_INSURANCE_TERMS_BODY_LINES] = groupInsuranceTermsText.trim().split('\n');
 const GROUP_INSURANCE_TERMS_BODY = GROUP_INSURANCE_TERMS_BODY_LINES.join('\n').trim();
+const TODAY = new Date().toISOString().slice(0, 10);
+
+function isShiftRangeInvalid(startDate, endDate, shiftStart, shiftEnd) {
+  if (!shiftStart || !shiftEnd) return false;
+  if (!startDate || !endDate) return shiftEnd <= shiftStart;
+  if (endDate > startDate) return false;
+  return shiftEnd <= shiftStart;
+}
 
 // ── Step panel wrapper ────────────────────────────────────────────────────
 function StepPanel({ title, icon, children }) {
@@ -398,8 +406,8 @@ export default function PermitForm() {
       if (form.startDate && form.endDate && form.endDate < form.startDate) {
         nextErrors.endDate = 'End Date cannot be earlier than Start Date.';
       }
-      if (form.shiftStart && form.shiftEnd && form.shiftEnd <= form.shiftStart) {
-        nextErrors.shiftEnd = 'Shift End must be later than Shift Start.';
+      if (isShiftRangeInvalid(form.startDate, form.endDate, form.shiftStart, form.shiftEnd)) {
+        nextErrors.shiftEnd = 'Shift End must be later than Shift Start for the same work date.';
       }
       if (form.manpower && (!/^\d+$/.test(form.manpower) || Number(form.manpower) <= 0)) {
         nextErrors.manpower = 'Manpower must be a positive whole number.';
@@ -504,7 +512,7 @@ export default function PermitForm() {
           className={`field-input ${errors[id] ? 'error' : ''}`} rows={3} placeholder={opts.ph || ''} disabled={opts.disabled} />
       ) : (
         <input id={id} type={opts.type || 'text'} value={form[id]}
-          onChange={setV} className={`field-input ${errors[id] ? 'error' : ''}`} placeholder={opts.ph || ''} disabled={opts.disabled} />
+          onChange={setV} className={`field-input ${errors[id] ? 'error' : ''}`} placeholder={opts.ph || ''} disabled={opts.disabled} {...(opts.inputProps || {})} />
       )}
     </Field>
   );
@@ -561,8 +569,8 @@ export default function PermitForm() {
       {step === 0 && (
         <StepPanel title="Permit Information" >
           <FieldGrid cols={4}>
-            {F('validFrom', 'Valid From', { type: 'date', req: true })}
-            {F('validTo',   'Valid To',   { type: 'date', req: true })}
+            {F('validFrom', 'Valid From', { type: 'date', req: true, inputProps: { min: TODAY, max: form.validTo || undefined } })}
+            {F('validTo',   'Valid To',   { type: 'date', req: true, inputProps: { min: form.validFrom || TODAY } })}
             <div className="sm:col-span-2">
               {F('sNo', 'Serial No.', { req: true, disabled: true, ph: loadingSerial ? 'Generating...' : '' })}
             </div>
@@ -656,8 +664,8 @@ export default function PermitForm() {
 
           <SectionLabel>Work Duration</SectionLabel>
           <FieldGrid cols={4}>
-            {F('startDate',  'Start Date', { type: 'date' })}
-            {F('endDate',    'End Date',   { type: 'date' })}
+            {F('startDate',  'Start Date', { type: 'date', inputProps: { min: TODAY, max: form.endDate || undefined } })}
+            {F('endDate',    'End Date',   { type: 'date', inputProps: { min: form.startDate || TODAY } })}
             {F('shiftStart', 'Shift Start', { type: 'time' })}
             {F('shiftEnd',   'Shift End',   { type: 'time' })}
           </FieldGrid>

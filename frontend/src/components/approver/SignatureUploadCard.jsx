@@ -3,6 +3,7 @@ import { Image as ImageIcon, PenLine, Trash2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import client from '../../api/client';
 import useAuthStore from '../../store/authStore';
+import { Spinner } from '../FormElements';
 
 const MAX_SIGNATURE_SIZE = 2 * 1024 * 1024;
 const ACCEPTED_SIGNATURE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
@@ -106,7 +107,7 @@ export default function SignatureUploadCard({ className = '' }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex h-20 w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-200 bg-slate-50 sm:w-44">
             {loading ? (
-              <span className="text-xs font-semibold text-slate-400">Loading...</span>
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400"><Spinner size={3} /> Loading...</span>
             ) : signature.signature_url ? (
               <img
                 src={signature.signature_url}
@@ -132,8 +133,8 @@ export default function SignatureUploadCard({ className = '' }) {
               disabled={loading || saving}
               className="btn-primary btn-sm"
             >
-              <Upload size={14} />
-              {signature.has_signature ? 'Replace' : 'Upload'}
+              {saving ? <Spinner size={4} /> : <Upload size={14} />}
+              {saving ? 'Saving...' : signature.has_signature ? 'Replace' : 'Upload'}
             </button>
             {signature.has_signature && (
               <button
@@ -143,7 +144,7 @@ export default function SignatureUploadCard({ className = '' }) {
                 className="btn-secondary btn-sm"
                 title="Remove signature"
               >
-                <Trash2 size={14} />
+                {saving ? <Spinner size={4} /> : <Trash2 size={14} />}
               </button>
             )}
           </div>

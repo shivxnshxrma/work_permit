@@ -8,3 +8,6 @@ urlpatterns = [
     path('api/auth/',    include('apps.accounts.urls')),
     path('api/permits/', include('apps.permits.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

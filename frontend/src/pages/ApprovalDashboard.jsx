@@ -14,12 +14,23 @@ export default function ApprovalDashboard() {
   const [approverStages, setApproverStages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const fetchPermits = useCallback(async ({ silent = false } = {}) => {
+    if (startDate && endDate && startDate > endDate) {
+      toast.error('End date cannot be before start date.', { id: 'approver-date-error' });
+      return;
+    }
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const response = await client.get('/permits/approvals/pending/');
+      const response = await client.get('/permits/approvals/pending/', {
+        params: {
+          ...(startDate ? { start_date: startDate } : {}),
+          ...(endDate ? { end_date: endDate } : {}),
+        },
+      });
       setPermits(response.data.permits || []);
       setApproverStages(response.data.approver_stages || []);
       if (silent) toast.success('Queue refreshed.');
@@ -34,7 +45,7 @@ export default function ApprovalDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [navigate]);
+  }, [navigate, startDate, endDate]);
 
   useEffect(() => {
     fetchPermits();
@@ -80,6 +91,22 @@ export default function ApprovalDashboard() {
               {permits.length} pending
             </span>
           )}
+          <div className="hidden lg:flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              max={endDate || undefined}
+              className="field-input min-w-[140px] !py-2 !text-sm bg-white"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              min={startDate || undefined}
+              className="field-input min-w-[140px] !py-2 !text-sm bg-white"
+            />
+          </div>
           <button
             onClick={() => fetchPermits({ silent: true })}
             disabled={refreshing}
@@ -89,6 +116,23 @@ export default function ApprovalDashboard() {
             Refresh
           </button>
         </div>
+      </div>
+
+      <div className="mb-6 flex flex-wrap items-center gap-2 lg:hidden">
+        <input
+          type="date"
+          value={startDate}
+          onChange={(event) => setStartDate(event.target.value)}
+          max={endDate || undefined}
+          className="field-input min-w-[150px] !py-2 !text-sm bg-white"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(event) => setEndDate(event.target.value)}
+          min={startDate || undefined}
+          className="field-input min-w-[150px] !py-2 !text-sm bg-white"
+        />
       </div>
 
       <SignatureUploadCard className="mb-8" />

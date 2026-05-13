@@ -31,7 +31,8 @@ def build_next_daily_serial_number(for_date=None):
 
 class WorkPermitListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for dashboard list view."""
-    pdf_url     = serializers.ReadOnlyField()
+    pdf_url     = serializers.SerializerMethodField()
+    group_insurance_url = serializers.SerializerMethodField()
     owner_name  = serializers.CharField(source='user.full_name', read_only=True)
     owner_email = serializers.CharField(source='user.email',     read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -46,6 +47,19 @@ class WorkPermitListSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = fields
+
+    def _build_file_url(self, file_field):
+        if not file_field:
+            return None
+        url = file_field.url
+        request = self.context.get('request')
+        return request.build_absolute_uri(url) if request else url
+
+    def get_pdf_url(self, obj):
+        return self._build_file_url(obj.pdf_file)
+
+    def get_group_insurance_url(self, obj):
+        return self._build_file_url(obj.group_insurance_file)
 
 
 class ApprovalLogSerializer(serializers.ModelSerializer):
@@ -62,12 +76,12 @@ class ApprovalLogSerializer(serializers.ModelSerializer):
 
 class WorkPermitDetailSerializer(serializers.ModelSerializer):
     """Full serializer including form_data payload and approval history."""
-    pdf_url     = serializers.ReadOnlyField()
+    pdf_url     = serializers.SerializerMethodField()
     owner_name  = serializers.CharField(source='user.full_name', read_only=True)
     owner_email = serializers.CharField(source='user.email', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     approval_logs = ApprovalLogSerializer(many=True, read_only=True)
-    group_insurance_url = serializers.ReadOnlyField()
+    group_insurance_url = serializers.SerializerMethodField()
     group_insurance_file_name = serializers.ReadOnlyField()
 
     class Meta:
@@ -85,6 +99,19 @@ class WorkPermitDetailSerializer(serializers.ModelSerializer):
             'group_insurance_file_name', 'status', 'current_stage', 'approval_logs',
             'rejection_reason', 'created_at', 'updated_at',
         ]
+
+    def _build_file_url(self, file_field):
+        if not file_field:
+            return None
+        url = file_field.url
+        request = self.context.get('request')
+        return request.build_absolute_uri(url) if request else url
+
+    def get_pdf_url(self, obj):
+        return self._build_file_url(obj.pdf_file)
+
+    def get_group_insurance_url(self, obj):
+        return self._build_file_url(obj.group_insurance_file)
 
 
 class WorkPermitCreateSerializer(serializers.ModelSerializer):
