@@ -115,16 +115,16 @@ function PermitCard({ permit, onDelete }) {
 
 // ── Stats bar ─────────────────────────────────────────────────────────────
 function StatsBar({ permits }) {
-  const total     = permits.length;
+  const total = permits.length;
   const submitted = permits.filter((p) => p.status === 'stage_1' || p.status === 'stage_2').length;
-  const approved  = permits.filter((p) => p.status === 'approved').length;
-  const rejected  = permits.filter((p) => p.status === 'stage_1_rejected' || p.status === 'stage_2_rejected').length;
+  const approved = permits.filter((p) => p.status === 'approved').length;
+  const rejected = permits.filter((p) => p.status === 'stage_1_rejected' || p.status === 'stage_2_rejected').length;
 
   const tiles = [
-    { label: 'Total',     value: total,     color: 'bg-navy-50  text-navy-700' },
+    { label: 'Total', value: total, color: 'bg-navy-50  text-navy-700' },
     { label: 'Submitted', value: submitted, color: 'bg-blue-50  text-blue-700' },
-    { label: 'Approved',  value: approved,  color: 'bg-green-50 text-green-700' },
-    { label: 'Reinitiated',  value: rejected,  color: 'bg-red-50 text-red-700' },
+    { label: 'Approved', value: approved, color: 'bg-green-50 text-green-700' },
+    { label: 'Reinitiated', value: rejected, color: 'bg-red-50 text-red-700' },
   ];
 
   return (
@@ -217,9 +217,9 @@ export default function Dashboard() {
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {permits.map((p) => (
-            <PermitCard key={p.id} permit={p} onDelete={handleDelete} />
-          ))}
+          {permits?.map(permit => (
+            <PermitCard key={permit.id} permit={permit} />
+          )) || <p>No permits found.</p>}
         </div>
       )}
     </>
