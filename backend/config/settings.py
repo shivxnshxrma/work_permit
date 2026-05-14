@@ -24,13 +24,21 @@ def clean_origin(origin):
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = ['workpermit-backend-production.up.railway.app', 'localhost', '127.0.0.1']
-
-# Add Render's dynamic external hostname
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+
+_default_allowed_hosts = [
+    'localhost',
+    '127.0.0.1',
+    'workpermit-backend-production.up.railway.app',
+]
+for platform_host in (
+    os.getenv('RAILWAY_PUBLIC_DOMAIN'),
+    os.getenv('RENDER_EXTERNAL_HOSTNAME'),
+):
+    if platform_host:
+        _default_allowed_hosts.append(platform_host)
+
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS') or _default_allowed_hosts
 SUPER_ADMIN_EMAIL = os.getenv('SUPER_ADMIN_EMAIL', 'admin@gmail.com')
 SUPER_ADMIN_PASSWORD = os.getenv('SUPER_ADMIN_PASSWORD', 'admin123')
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -164,11 +172,10 @@ if _cors_allowed_origins:
 else:
     CORS_ALLOWED_ORIGINS = [FRONTEND_URL, 'http://localhost:3000']
 CORS_ALLOW_CREDENTIALS = True
-# CSRF_TRUSTED_ORIGINS = [
-#     origin for origin in (clean_origin(value) for value in env_list('CSRF_TRUSTED_ORIGINS', ' '.join(CORS_ALLOWED_ORIGINS)))
-#     if origin
-# ]
-CSRF_TRUSTED_ORIGINS = ['https://work-permit-system.vercel.app']
+CSRF_TRUSTED_ORIGINS = [
+    origin for origin in (clean_origin(value) for value in env_list('CSRF_TRUSTED_ORIGINS', ' '.join(CORS_ALLOWED_ORIGINS)))
+    if origin
+]
 
 # ── Email ─────────────────────────────────────────────────────────────────
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
@@ -176,6 +183,8 @@ EMAIL_HOST = os.getenv('EMAIL_HOST', '')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@workpermit.local')
-FINAL_PERMIT_EMAIL = os.getenv('FINAL_PERMIT_EMAIL', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'noreply@workpermit.local'
+GATE_NO_2_EMAIL = os.getenv('GATE_NO_2_EMAIL') or os.getenv('FINAL_PERMIT_EMAIL', '')
+FINAL_PERMIT_EMAIL = GATE_NO_2_EMAIL

@@ -122,6 +122,8 @@ class ApprovalLog(models.Model):
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     reason = models.TextField(blank=True)  # For rejections or notes
     signature_image = models.ImageField(upload_to=approval_signature_upload_path, null=True, blank=True)
+    signature_image_data = models.BinaryField(null=True, blank=True)
+    signature_image_content_type = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

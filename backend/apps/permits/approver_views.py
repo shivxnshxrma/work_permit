@@ -62,7 +62,7 @@ def _signature_payload(user, request):
             signature_url = user.signature_image.url
 
     return {
-        'has_signature': bool(user.signature_image),
+        'has_signature': bool(user.signature_image or user.signature_image_data),
         'signature_url': signature_url,
     }
 
@@ -89,21 +89,41 @@ def _apply_date_filters(queryset, request):
     return queryset, None
 
 
-def _snapshot_approval_signature(user, approval_log):
+def _read_user_signature_data(user):
+    signature_data = bytes(user.signature_image_data or b'')
+    if signature_data:
+        return signature_data, user.signature_image_content_type, 'signature.png'
+
     signature = user.signature_image
     if not signature:
-        return
+        return b'', '', ''
 
     filename = signature.name.rsplit('/', 1)[-1] or 'signature.png'
-    signature.open('rb')
     try:
-        approval_log.signature_image.save(
-            filename,
-            ContentFile(signature.read()),
-            save=True,
-        )
+        signature.open('rb')
+        return signature.read(), '', filename
+    except Exception:
+        return b'', '', ''
     finally:
-        signature.close()
+        try:
+            signature.close()
+        except Exception:
+            pass
+
+
+def _snapshot_approval_signature(approval_log, signature_data, content_type, filename):
+    approval_log.signature_image_data = signature_data
+    approval_log.signature_image_content_type = content_type
+    approval_log.signature_image.save(
+        filename,
+        ContentFile(signature_data),
+        save=False,
+    )
+    approval_log.save(update_fields=[
+        'signature_image',
+        'signature_image_data',
+        'signature_image_content_type',
+    ])
 
 
 @api_view(['GET', 'POST', 'DELETE'])
@@ -123,7 +143,14 @@ def approver_signature(request):
     if request.method == 'DELETE':
         if request.user.signature_image:
             request.user.signature_image.delete(save=False)
-            request.user.save(update_fields=['signature_image', 'updated_at'])
+        request.user.signature_image_data = None
+        request.user.signature_image_content_type = ''
+        request.user.save(update_fields=[
+            'signature_image',
+            'signature_image_data',
+            'signature_image_content_type',
+            'updated_at',
+        ])
         return Response(_signature_payload(request.user, request))
 
     uploaded = request.FILES.get('signature_image')
@@ -158,8 +185,18 @@ def approver_signature(request):
     if request.user.signature_image:
         request.user.signature_image.delete(save=False)
 
+    signature_data = uploaded.read()
+    uploaded.seek(0)
+
     request.user.signature_image = uploaded
-    request.user.save(update_fields=['signature_image', 'updated_at'])
+    request.user.signature_image_data = signature_data
+    request.user.signature_image_content_type = uploaded.content_type
+    request.user.save(update_fields=[
+        'signature_image',
+        'signature_image_data',
+        'signature_image_content_type',
+        'updated_at',
+    ])
     return Response(_signature_payload(request.user, request), status=status.HTTP_201_CREATED)
 
 
@@ -325,9 +362,10 @@ def approve_permit(request, pk):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    if not request.user.signature_image:
+    signature_data, signature_content_type, signature_filename = _read_user_signature_data(request.user)
+    if not signature_data:
         return Response(
-            {'detail': 'Upload your signature image before approving permits.'},
+            {'detail': 'Upload your signature image before approving permits. If you already uploaded it, upload it again.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -338,7 +376,12 @@ def approve_permit(request, pk):
         action='approved',
         reason=reason
     )
-    _snapshot_approval_signature(request.user, approval_log)
+    _snapshot_approval_signature(
+        approval_log,
+        signature_data,
+        signature_content_type,
+        signature_filename,
+    )
 
     # Move to next stage or approve
     if current_stage == 1:

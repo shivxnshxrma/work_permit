@@ -1,9 +1,9 @@
 import logging
-import os
 from io import BytesIO
 
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.core.mail import EmailMessage
 from django.utils import timezone
 from PIL import Image, ImageChops
 from pypdf import PdfReader, PdfWriter, Transformation
@@ -322,6 +322,24 @@ def _normalize_time(value):
     return raw, ''
 
 
+def _signature_source(log):
+    if not log or not log.approver:
+        return None
+
+    if getattr(log, 'signature_image_data', None):
+        return bytes(log.signature_image_data)
+
+    signature = getattr(log, 'signature_image', None)
+    if signature:
+        return signature
+
+    if getattr(log.approver, 'signature_image_data', None):
+        return bytes(log.approver.signature_image_data)
+
+    signature = getattr(log.approver, 'signature_image', None)
+    return signature if signature else None
+
+
 def _approval_pdf_fields(permit):
     from .models import ApprovalLog, Approver
 
@@ -354,11 +372,7 @@ def _approval_pdf_fields(permit):
         if not log or not log.approver:
             return
         text_values[name_field] = log.approver.full_name
-        signature = (
-            getattr(log, 'signature_image', None)
-            or getattr(log.approver, 'signature_image', None)
-        )
-        signature_images[signature_field] = signature if signature else None
+        signature_images[signature_field] = _signature_source(log)
 
     stage_1_log = next((log for log in logs if log.stage == 1), None)
     assign('stage1_approver_name', 'stage1_approver_sign', stage_1_log)
@@ -404,8 +418,11 @@ def _trim_signature_image(image):
 
 def _signature_pdf_page(signature_image):
     try:
-        signature_image.open('rb')
-        image = Image.open(signature_image)
+        if isinstance(signature_image, (bytes, bytearray, memoryview)):
+            image = Image.open(BytesIO(bytes(signature_image)))
+        else:
+            signature_image.open('rb')
+            image = Image.open(BytesIO(signature_image.read()))
         image.load()
         image.thumbnail((800, 800), Image.Resampling.LANCZOS)
     except Exception as exc:
@@ -686,42 +703,44 @@ def attach_permit_pdf(permit):
 
 def send_final_permit_email(permit):
     """Email the approved permit PDF to the configured recipient, if any."""
-    # TODO: Email functionality disabled until client pays for email services
-    # When enabled, uncomment the email sending code below:
-    #
-    # recipient = getattr(settings, 'FINAL_PERMIT_EMAIL', '') or os.getenv('FINAL_PERMIT_EMAIL', '')
-    # if not recipient:
-    #     logger.info('Skipping final permit email for permit %s because FINAL_PERMIT_EMAIL is not configured.', permit.pk)
-    #     return False
-    #
-    # if not permit.pdf_file:
-    #     logger.warning('Skipping final permit email for permit %s because no PDF is attached.', permit.pk)
-    #     return False
-    #
-    # email = EmailMessage(
-    #     subject=f'Approved Work Permit #{permit.serial_number or permit.pk}',
-    #     body=(
-    #         f'The attached work permit has completed all approval stages.\n\n'
-    #         f'Permit ID: {permit.pk}\n'
-    #         f'Serial Number: {permit.serial_number or "N/A"}\n'
-    #         f'Employee: {permit.user.full_name} <{permit.user.email}>'
-    #     ),
-    #     from_email=settings.DEFAULT_FROM_EMAIL,
-    #     to=[recipient],
-    # )
-    #
-    # permit.pdf_file.open('rb')
-    # try:
-    #     email.attach(
-    #         permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf',
-    #         permit.pdf_file.read(),
-    #         'application/pdf',
-    #     )
-    # finally:
-    #     permit.pdf_file.close()
-    #
-    # email.send(fail_silently=False)
-    # return True
+    recipient = (
+        getattr(settings, 'GATE_NO_2_EMAIL', '')
+        or getattr(settings, 'FINAL_PERMIT_EMAIL', '')
+    )
+    if not recipient:
+        logger.info('Skipping final permit email for permit %s because gate email is not configured.', permit.pk)
+        return False
 
-    logger.info('Email functionality disabled for permit %s', permit.pk)
-    return False
+    if not permit.pdf_file:
+        attach_permit_pdf(permit)
+        permit.save(update_fields=['pdf_file'])
+
+    if not permit.pdf_file:
+        logger.warning('Skipping final permit email for permit %s because no PDF is attached.', permit.pk)
+        return False
+
+    serial = permit.serial_number or permit.pk
+    email = EmailMessage(
+        subject=f'Approved Work Permit #{serial}',
+        body=(
+            'The attached work permit has completed all approval stages.\n\n'
+            f'Permit ID: {permit.pk}\n'
+            f'Serial Number: {permit.serial_number or "N/A"}\n'
+            f'Employee: {permit.user.full_name} <{permit.user.email}>\n'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[recipient],
+    )
+
+    permit.pdf_file.open('rb')
+    try:
+        email.attach(
+            permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf',
+            permit.pdf_file.read(),
+            'application/pdf',
+        )
+    finally:
+        permit.pdf_file.close()
+
+    email.send(fail_silently=False)
+    return True
