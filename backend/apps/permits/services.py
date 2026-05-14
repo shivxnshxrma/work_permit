@@ -4,6 +4,7 @@ from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
+from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 from PIL import Image, ImageChops
 from pypdf import PdfReader, PdfWriter, Transformation
@@ -703,6 +704,15 @@ def attach_permit_pdf(permit):
 
 def send_final_permit_email(permit):
     """Email the approved permit PDF to the configured recipient, if any."""
+    if (
+        not settings.DEBUG
+        and settings.EMAIL_BACKEND in getattr(settings, 'NON_DELIVERY_EMAIL_BACKENDS', set())
+    ):
+        raise ImproperlyConfigured(
+            'Production email is using a non-delivery EMAIL_BACKEND. '
+            'Set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend and SMTP credentials.'
+        )
+
     recipient = (
         getattr(settings, 'GATE_NO_2_EMAIL', '')
         or getattr(settings, 'FINAL_PERMIT_EMAIL', '')
