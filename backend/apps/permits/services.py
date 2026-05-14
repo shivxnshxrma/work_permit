@@ -742,5 +742,12 @@ def send_final_permit_email(permit):
     finally:
         permit.pdf_file.close()
 
-    email.send(fail_silently=False)
-    return True
+    sent_count = email.send(fail_silently=False)
+    logger.info(
+        'Final permit email send attempted for permit %s to %s via %s; sent_count=%s.',
+        permit.pk,
+        recipient,
+        settings.EMAIL_BACKEND,
+        sent_count,
+    )
+    return sent_count > 0

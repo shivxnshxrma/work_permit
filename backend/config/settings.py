@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import dj_database_url
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env', override=False)
@@ -188,3 +189,15 @@ EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'noreply@workpermit.local'
 GATE_NO_2_EMAIL = os.getenv('GATE_NO_2_EMAIL') or os.getenv('FINAL_PERMIT_EMAIL', '')
 FINAL_PERMIT_EMAIL = GATE_NO_2_EMAIL
+
+NON_DELIVERY_EMAIL_BACKENDS = {
+    'django.core.mail.backends.console.EmailBackend',
+    'django.core.mail.backends.dummy.EmailBackend',
+    'django.core.mail.backends.locmem.EmailBackend',
+    'django.core.mail.backends.filebased.EmailBackend',
+}
+if not DEBUG and EMAIL_BACKEND in NON_DELIVERY_EMAIL_BACKENDS:
+    raise ImproperlyConfigured(
+        'Production email is using a non-delivery EMAIL_BACKEND. '
+        'Set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend and SMTP credentials.'
+    )
