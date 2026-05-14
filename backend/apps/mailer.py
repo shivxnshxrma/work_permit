@@ -57,6 +57,7 @@ def _send_resend_email(subject, body, to, *, from_email=None, attachments=None):
         headers={
             'Authorization': f'Bearer {api_key}',
             'Content-Type': 'application/json',
+            'User-Agent': 'mneo-work-permit/1.0',
         },
         method='POST',
     )
