@@ -3,12 +3,11 @@ from io import BytesIO
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.mail import EmailMessage
-from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 from PIL import Image, ImageChops
 from pypdf import PdfReader, PdfWriter, Transformation
 from pypdf.generic import DictionaryObject, NameObject, TextStringObject
+from apps.mailer import send_email_with_attachments
 
 
 logger = logging.getLogger(__name__)
@@ -704,15 +703,6 @@ def attach_permit_pdf(permit):
 
 def send_final_permit_email(permit):
     """Email the approved permit PDF to the configured recipient, if any."""
-    if (
-        not settings.DEBUG
-        and settings.EMAIL_BACKEND in getattr(settings, 'NON_DELIVERY_EMAIL_BACKENDS', set())
-    ):
-        raise ImproperlyConfigured(
-            'Production email is using a non-delivery EMAIL_BACKEND. '
-            'Set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend and SMTP credentials.'
-        )
-
     recipient = (
         getattr(settings, 'GATE_NO_2_EMAIL', '')
         or getattr(settings, 'FINAL_PERMIT_EMAIL', '')
@@ -730,34 +720,36 @@ def send_final_permit_email(permit):
         return False
 
     serial = permit.serial_number or permit.pk
-    email = EmailMessage(
-        subject=f'Approved Work Permit #{serial}',
-        body=(
-            'The attached work permit has completed all approval stages.\n\n'
-            f'Permit ID: {permit.pk}\n'
-            f'Serial Number: {permit.serial_number or "N/A"}\n'
-            f'Employee: {permit.user.full_name} <{permit.user.email}>\n'
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[recipient],
+    subject = f'Approved Work Permit #{serial}'
+    body = (
+        'The attached work permit has completed all approval stages.\n\n'
+        f'Permit ID: {permit.pk}\n'
+        f'Serial Number: {permit.serial_number or "N/A"}\n'
+        f'Employee: {permit.user.full_name} <{permit.user.email}>\n'
     )
 
     permit.pdf_file.open('rb')
     try:
-        email.attach(
-            permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf',
-            permit.pdf_file.read(),
-            'application/pdf',
-        )
+        attachment = {
+            'filename': permit.pdf_file.name.rsplit('/', 1)[-1] or f'permit_{permit.pk}.pdf',
+            'content': permit.pdf_file.read(),
+            'content_type': 'application/pdf',
+        }
     finally:
         permit.pdf_file.close()
 
-    sent_count = email.send(fail_silently=False)
+    sent = send_email_with_attachments(
+        subject,
+        body,
+        [recipient],
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        attachments=[attachment],
+    )
     logger.info(
-        'Final permit email send attempted for permit %s to %s via %s; sent_count=%s.',
+        'Final permit email send attempted for permit %s to %s via %s; sent=%s.',
         permit.pk,
         recipient,
-        settings.EMAIL_BACKEND,
-        sent_count,
+        'resend' if getattr(settings, 'RESEND_API_KEY', '') else settings.EMAIL_BACKEND,
+        sent,
     )
-    return sent_count > 0
+    return sent

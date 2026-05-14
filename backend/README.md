@@ -29,20 +29,15 @@ ALLOWED_HOSTS=<your-railway-host>
 AUTH_COOKIE_SAMESITE=None
 AUTH_COOKIE_SECURE=True
 DATABASE_URL=<render-postgres-external-url>
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=<sender-gmail-address>
-EMAIL_HOST_PASSWORD=<google-app-password>
-EMAIL_USE_TLS=True
-EMAIL_USE_SSL=False
-DEFAULT_FROM_EMAIL=<sender-gmail-address>
+RESEND_API_KEY=<resend-api-key>
+RESEND_FROM_EMAIL=<verified-sender-email>
+DEFAULT_FROM_EMAIL=<verified-sender-email>
 GATE_NO_2_EMAIL=<gate-no-2-recipient>
 SUPER_ADMIN_EMAIL=<admin-login-email>
 SUPER_ADMIN_PASSWORD=<admin-login-password>
 ```
 
-`ALLOWED_HOSTS` can be omitted if you use the Railway-generated domain; the app reads `RAILWAY_PUBLIC_DOMAIN` automatically. Set it explicitly if you use a custom domain.
+`ALLOWED_HOSTS` can be omitted if you use the Railway-generated domain; the app reads `RAILWAY_PUBLIC_DOMAIN` automatically. Set it explicitly if you use a custom domain. Railway Free, Trial, and Hobby plans disable outbound SMTP, so use Resend HTTPS API variables above. SMTP variables only work on Railway Pro and above.
 
 ## Recommended Render configuration
 

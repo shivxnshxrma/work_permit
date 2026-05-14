@@ -189,6 +189,9 @@ EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'noreply@workpermit.local'
 GATE_NO_2_EMAIL = os.getenv('GATE_NO_2_EMAIL') or os.getenv('FINAL_PERMIT_EMAIL', '')
 FINAL_PERMIT_EMAIL = GATE_NO_2_EMAIL
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', '')
+RESEND_API_URL = os.getenv('RESEND_API_URL', 'https://api.resend.com/emails')
 
 NON_DELIVERY_EMAIL_BACKENDS = {
     'django.core.mail.backends.console.EmailBackend',

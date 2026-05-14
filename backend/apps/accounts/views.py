@@ -6,11 +6,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.conf import settings
-from django.core.mail import send_mail
 
 from .serializers import RegisterSerializer, UserSerializer, CustomTokenSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
 from .models import User, PasswordResetToken
 from apps.permits.models import Approver
+from apps.mailer import send_plain_email
 
 
 def set_auth_cookies(response, access, refresh):
@@ -156,12 +156,11 @@ def forgot_password(request):
             "Thanks,\nDS Group Team"
         )
 
-        send_mail(
+        send_plain_email(
             subject,
             message,
-            settings.DEFAULT_FROM_EMAIL,
             [user.email],
-            fail_silently=False,
+            from_email=settings.DEFAULT_FROM_EMAIL,
         )
 
         return Response({
