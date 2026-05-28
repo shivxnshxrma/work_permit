@@ -81,12 +81,13 @@ export const authAPI = {
 // ── Permits ───────────────────────────────────────────────────────────────
 export const permitsAPI = {
   nextSerial: ()         => client.get('/permits/next-serial/'),
-  list:     ()         => client.get('/permits/'),
+  list:     (params)   => client.get('/permits/', { params }),
   detail:   (id)       => client.get(`/permits/${id}/`),
   download: (id)       => client.get(`/permits/${id}/download/`, { responseType: 'blob' }),
   create:   (payload) => client.post('/permits/create/', payload),
   update:   (id, data) => client.patch(`/permits/${id}/`, data),
   cancel:   (id)       => client.delete(`/permits/${id}/`),
+  adminDelete: (id)    => client.delete(`/permits/admin/permits/${id}/`),
   approverDetail: (id) => client.get(`/permits/approvals/${id}/`),
 };
 

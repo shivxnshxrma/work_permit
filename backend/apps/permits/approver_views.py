@@ -11,6 +11,9 @@ from .models import WorkPermit, Approver, ApprovalLog
 from .serializers import WorkPermitListSerializer, WorkPermitDetailSerializer
 from .services import attach_permit_pdf, send_final_permit_email
 
+DEFAULT_PAGE_SIZE = 10
+MAX_PAGE_SIZE = 50
+
 
 def _get_approver_stages(user):
     """Get the stages where this user is an approver."""
@@ -87,6 +90,22 @@ def _apply_date_filters(queryset, request):
         queryset = queryset.filter(created_at__date__lte=end_date)
 
     return queryset, None
+
+
+def _pagination_params(request):
+    try:
+        page = max(int(request.query_params.get('page', 1)), 1)
+    except (TypeError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.query_params.get('page_size', DEFAULT_PAGE_SIZE))
+    except (TypeError, ValueError):
+        page_size = DEFAULT_PAGE_SIZE
+
+    page_size = min(max(page_size, 1), MAX_PAGE_SIZE)
+    offset = (page - 1) * page_size
+    return page, page_size, offset
 
 
 def _read_user_signature_data(user):
@@ -262,9 +281,12 @@ def approver_permits(request):
     if error:
         return Response({'detail': error}, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer = WorkPermitListSerializer(permits, many=True, context={'request': request})
+    page, page_size, offset = _pagination_params(request)
+    total = permits.count()
+    page_permits = list(permits[offset:offset + page_size])
+    serializer = WorkPermitListSerializer(page_permits, many=True, context={'request': request})
     permit_data = serializer.data
-    for item, permit in zip(permit_data, permits):
+    for item, permit in zip(permit_data, page_permits):
         item['available_actions'] = (
             _get_stage_2_available_actions(request.user, permit)
             if permit.current_stage == 2
@@ -273,6 +295,10 @@ def approver_permits(request):
     return Response({
         'approver_stages': stages,
         'permits': permit_data,
+        'count': total,
+        'page': page,
+        'page_size': page_size,
+        'has_next': offset + page_size < total,
     })
 
 

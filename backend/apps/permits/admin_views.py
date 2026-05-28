@@ -13,6 +13,9 @@ from .models import WorkPermit, Approver, ApprovalLog
 from .serializers import ApproverSerializer, WorkPermitListSerializer, WorkPermitDetailSerializer
 from .services import attach_permit_pdf
 
+DEFAULT_PAGE_SIZE = 10
+MAX_PAGE_SIZE = 50
+
 
 def _is_super_admin(request):
     """Check if the request user is a super admin."""
@@ -76,6 +79,22 @@ def _permit_scope(filter_key):
         )
 
     return None
+
+
+def _pagination_params(request):
+    try:
+        page = max(int(request.query_params.get('page', 1)), 1)
+    except (TypeError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.query_params.get('page_size', DEFAULT_PAGE_SIZE))
+    except (TypeError, ValueError):
+        page_size = DEFAULT_PAGE_SIZE
+
+    page_size = min(max(page_size, 1), MAX_PAGE_SIZE)
+    offset = (page - 1) * page_size
+    return page, page_size, offset
 
 
 def _normalize_requires_reason(stage, value):
@@ -333,22 +352,36 @@ def admin_permit_list(request):
     if error:
         return Response({'detail': error}, status=status.HTTP_400_BAD_REQUEST)
 
+    ordered_permits = permits.select_related('user').order_by('-created_at')
+    page, page_size, offset = _pagination_params(request)
+    total = ordered_permits.count()
+    page_permits = list(ordered_permits[offset:offset + page_size])
     serializer = WorkPermitListSerializer(
-        permits.select_related('user').order_by('-created_at'),
+        page_permits,
         many=True,
         context={'request': request},
     )
     return Response({
         'filter': filter_key,
         'permits': serializer.data,
+        'count': total,
+        'page': page,
+        'page_size': page_size,
+        'has_next': offset + page_size < total,
     })
 
 
-@api_view(['GET'])
+@api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def admin_permit_detail(request, pk):
     """Show full permit detail for admin statistics drilldown."""
-    if not _has_permit_operations_access(request):
+    if request.method == 'DELETE':
+        if not _is_super_admin(request):
+            return Response(
+                {'detail': 'Admin access required.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+    elif not _has_permit_operations_access(request):
         return Response(
             {'detail': 'Permit operations access required.'},
             status=status.HTTP_403_FORBIDDEN
@@ -358,6 +391,15 @@ def admin_permit_detail(request, pk):
         permit = _pipeline_permits().select_related('user').get(pk=pk)
     except WorkPermit.DoesNotExist:
         return Response({'detail': 'Permit not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'DELETE':
+        if permit.status != WorkPermit.Status.APPROVED:
+            return Response(
+                {'detail': 'Only approved permits can be deleted.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        permit.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     serializer = WorkPermitDetailSerializer(permit, context={'request': request})
     return Response(serializer.data)

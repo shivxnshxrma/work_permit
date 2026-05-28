@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Download, FileText, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Download, FileText, RefreshCw, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import client from '../../api/client';
 import PermitStatusBadge from '../PermitStatusBadge';
@@ -13,6 +13,8 @@ const STAT_CONFIG = [
   { key: 'approved', label: 'Approved', color: 'bg-green-100 text-green-900' },
   { key: 'rejected', label: 'Reinitiated', color: 'bg-red-100 text-red-900' },
 ];
+
+const PERMIT_PAGE_SIZE = 10;
 
 function StatSelector({ activeKey, stats, onSelect }) {
   return (
@@ -73,15 +75,22 @@ function buildFilterParams(activeFilter, startDate, endDate) {
   return params;
 }
 
-export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLoaded }) {
+const EMPTY_STATS = {
+  total: 0,
+  stage_1: 0,
+  stage_2: 0,
+  approved: 0,
+  rejected: 0,
+};
+
+export default function AdminPermitStatsExplorer({
+  refreshKey = 0,
+  onDashboardLoaded,
+  canDeleteApproved = false,
+  initialDashboardData = null,
+}) {
   const [activeFilter, setActiveFilter] = useState('total');
-  const [stats, setStats] = useState({
-    total: 0,
-    stage_1: 0,
-    stage_2: 0,
-    approved: 0,
-    rejected: 0,
-  });
+  const [stats, setStats] = useState(initialDashboardData?.permits || EMPTY_STATS);
   const [permits, setPermits] = useState([]);
   const [selectedPermitId, setSelectedPermitId] = useState(null);
   const [selectedPermit, setSelectedPermit] = useState(null);
@@ -90,76 +99,45 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [page, setPage] = useState(1);
+  const loaderRef = useRef(null);
+  const skippedInitialStatsLoadRef = useRef(false);
 
-  const validateDates = () => {
+  const validateDates = useCallback(() => {
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       toast.error('End date cannot be before start date.', { id: 'date-error' });
       return false;
     }
     return true;
-  };
+  }, [startDate, endDate]);
 
-  useEffect(() => {
-    if (validateDates()) {
-      loadDashboardStats();
-    }
-  }, [refreshKey, refreshCounter, startDate, endDate]);
-
-  useEffect(() => {
-    if (validateDates()) {
-      loadPermits(activeFilter);
-    }
-  }, [activeFilter, refreshKey, refreshCounter, startDate, endDate]);
-
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = useCallback(async () => {
     setLoadingStats(true);
     try {
       const response = await client.get('/permits/admin/dashboard/', {
-        params: buildFilterParams(activeFilter, startDate, endDate),
+        params: {
+          ...(startDate ? { start_date: startDate } : {}),
+          ...(endDate ? { end_date: endDate } : {}),
+        },
       });
       setStats(response.data.permits || {});
       onDashboardLoaded?.(response.data);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to load permit statistics.');
       setStats({
-        total: 0,
-        stage_1: 0,
-        stage_2: 0,
-        approved: 0,
-        rejected: 0,
+        ...EMPTY_STATS,
       });
     } finally {
       setLoadingStats(false);
     }
-  };
+  }, [endDate, onDashboardLoaded, startDate]);
 
-  const loadPermits = async (filterKey) => {
-    setLoadingList(true);
-    setSelectedPermit(null);
-    try {
-      const response = await client.get('/permits/admin/permits/', {
-        params: buildFilterParams(filterKey, startDate, endDate),
-      });
-      const nextPermits = response.data.permits || [];
-      setPermits(nextPermits);
-      const nextSelectedId = nextPermits[0]?.id || null;
-      setSelectedPermitId(nextSelectedId);
-      if (nextSelectedId) {
-        loadPermitDetail(nextSelectedId);
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to load permits.');
-      setPermits([]);
-      setSelectedPermitId(null);
-      setSelectedPermit(null);
-    } finally {
-      setLoadingList(false);
-    }
-  };
-
-  const loadPermitDetail = async (permitId) => {
+  const loadPermitDetail = useCallback(async (permitId) => {
     setLoadingDetail(true);
     try {
       const response = await client.get(`/permits/admin/permits/${permitId}/`);
@@ -171,7 +149,85 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
     } finally {
       setLoadingDetail(false);
     }
-  };
+  }, []);
+
+  const loadPermits = useCallback(async (filterKey, { pageNumber = 1, append = false } = {}) => {
+    if (append) setLoadingMore(true);
+    else {
+      setLoadingList(true);
+      setSelectedPermit(null);
+    }
+    try {
+      const response = await client.get('/permits/admin/permits/', {
+        params: {
+          ...buildFilterParams(filterKey, startDate, endDate),
+          page: pageNumber,
+          page_size: PERMIT_PAGE_SIZE,
+        },
+      });
+      const nextPermits = response.data.permits || [];
+      setPermits((prev) => (append ? [...prev, ...nextPermits] : nextPermits));
+      setHasNextPage(Boolean(response.data.has_next));
+      setPage(response.data.page || pageNumber);
+
+      if (!append) {
+        const nextSelectedId = nextPermits[0]?.id || null;
+        setSelectedPermitId(nextSelectedId);
+        if (nextSelectedId) {
+          loadPermitDetail(nextSelectedId);
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to load permits.');
+      if (!append) {
+        setPermits([]);
+        setSelectedPermitId(null);
+        setSelectedPermit(null);
+      }
+    } finally {
+      setLoadingList(false);
+      setLoadingMore(false);
+    }
+  }, [endDate, loadPermitDetail, startDate]);
+
+  useEffect(() => {
+    if (
+      initialDashboardData &&
+      !skippedInitialStatsLoadRef.current &&
+      !startDate &&
+      !endDate &&
+      refreshCounter === 0 &&
+      refreshKey === 0
+    ) {
+      skippedInitialStatsLoadRef.current = true;
+      setStats(initialDashboardData.permits || EMPTY_STATS);
+      return;
+    }
+
+    if (validateDates()) {
+      loadDashboardStats();
+    }
+  }, [endDate, loadDashboardStats, refreshKey, refreshCounter, startDate, validateDates]);
+
+  useEffect(() => {
+    if (validateDates()) {
+      loadPermits(activeFilter, { pageNumber: 1 });
+    }
+  }, [activeFilter, loadPermits, refreshKey, refreshCounter, validateDates]);
+
+  useEffect(() => {
+    const node = loaderRef.current;
+    if (!node || loadingList || loadingMore || !hasNextPage) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) {
+        loadPermits(activeFilter, { pageNumber: page + 1, append: true });
+      }
+    }, { rootMargin: '240px' });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [activeFilter, hasNextPage, loadPermits, loadingList, loadingMore, page]);
 
   const handleDownloadApprovedPermit = async () => {
     if (!selectedPermit || selectedPermit.status !== 'approved') return;
@@ -193,6 +249,30 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
       toast.error(error.response?.data?.detail || 'Failed to download permit PDF.');
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleDeleteApprovedPermit = async () => {
+    if (!selectedPermit || selectedPermit.status !== 'approved') return;
+    if (!window.confirm(`Delete approved permit ${selectedPermit.serial_number || selectedPermit.id}?`)) return;
+
+    setDeleting(true);
+    try {
+      await client.delete(`/permits/admin/permits/${selectedPermit.id}/`);
+      toast.success('Approved permit deleted.');
+      setSelectedPermit(null);
+      setSelectedPermitId(null);
+      setPermits((prev) => {
+        const nextPermits = prev.filter((permit) => permit.id !== selectedPermit.id);
+        const nextSelectedId = nextPermits[0]?.id || null;
+        if (nextSelectedId) loadPermitDetail(nextSelectedId);
+        return nextPermits;
+      });
+      loadDashboardStats();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete approved permit.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -282,6 +362,9 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
                   onSelect={loadPermitDetail}
                 />
               ))}
+              <div ref={loaderRef} className="flex justify-center py-6">
+                {loadingMore && <Spinner size={5} />}
+              </div>
             </div>
           ) : (
             <div className="text-center py-16 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -317,15 +400,28 @@ export default function AdminPermitStatsExplorer({ refreshKey = 0, onDashboardLo
                   </div>
                   <div className="flex items-center gap-3">
                     {selectedPermit.status === 'approved' && (
-                      <button
-                        type="button"
-                        onClick={handleDownloadApprovedPermit}
-                        disabled={downloading}
-                        className="btn-secondary btn-sm"
-                      >
-                        {downloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
-                        {downloading ? 'Downloading...' : 'Download PDF'}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleDownloadApprovedPermit}
+                          disabled={downloading}
+                          className="btn-secondary btn-sm"
+                        >
+                          {downloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+                          {downloading ? 'Downloading...' : 'Download PDF'}
+                        </button>
+                        {canDeleteApproved && (
+                          <button
+                            type="button"
+                            onClick={handleDeleteApprovedPermit}
+                            disabled={deleting}
+                            className="btn-ghost btn-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            {deleting ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            {deleting ? 'Deleting...' : 'Delete'}
+                          </button>
+                        )}
+                      </>
                     )}
                     <PermitStatusBadge status={selectedPermit.status} size="sm" />
                   </div>

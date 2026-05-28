@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import client from '../../api/client';
 import AdminPermitStatsExplorer from '../admin/AdminPermitStatsExplorer';
@@ -7,25 +7,23 @@ import SignatureUploadCard from './SignatureUploadCard';
 
 export default function ApproverDashboardPanel() {
   const [loading, setLoading] = useState(true);
-  const [permits, setPermits] = useState([]);
   const [approverStages, setApproverStages] = useState([]);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryResponse, permitsResponse] = await Promise.all([client.get('/permits/approvals/summary/'), client.get('/permits/approvals/pending/')]);
+      const summaryResponse = await client.get('/permits/approvals/summary/');
       setApproverStages(summaryResponse.data.approver_stages || []);
-      setPermits(permitsResponse.data.permits || []);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to load your review dashboard.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
 
   if (loading) {
     return (

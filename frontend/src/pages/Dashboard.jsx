@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   FileText, Plus, Download, Trash2, Eye, Edit,
@@ -11,6 +11,8 @@ import { Breadcrumb } from '../components/Layout';
 import { Spinner, StatusBadge, EmptyState } from '../components/FormElements';
 import ApproverDashboardPanel from '../components/approver/ApproverDashboardPanel';
 
+const PERMIT_PAGE_SIZE = 10;
+
 function PermitCard({ permit, onDelete }) {
   const navigate = useNavigate();
 
@@ -18,8 +20,8 @@ function PermitCard({ permit, onDelete }) {
     e.stopPropagation();
     if (!confirm(`Delete permit ${permit.serial_number || permit.id}?`)) return;
     try {
-      await permitsAPI.remove(permit.id);
-      toast.success('Permit deleted.');
+      await permitsAPI.cancel(permit.id);
+      toast.success('Permit cancelled.');
       onDelete(permit.id);
     } catch {
       toast.error('Could not delete permit.');
@@ -145,22 +147,51 @@ export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const [permits, setPermits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [page, setPage] = useState(1);
+  const loaderRef = useRef(null);
 
-  const loadPermits = useCallback(async () => {
-    setLoading(true);
+  const loadPermits = useCallback(async ({ pageNumber = 1, append = false } = {}) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     try {
-      const { data } = await permitsAPI.list();
-      setPermits(data);
+      const { data } = await permitsAPI.list({ page: pageNumber, page_size: PERMIT_PAGE_SIZE });
+      const nextPermits = data.permits || [];
+      setPermits((prev) => (append ? [...prev, ...nextPermits] : nextPermits));
+      setHasNextPage(Boolean(data.has_next));
+      setPage(data.page || pageNumber);
     } catch {
       toast.error('Could not load permits.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
   useEffect(() => { loadPermits(); }, [loadPermits]);
 
-  const handleDelete = (id) => setPermits((prev) => prev.filter((p) => p.id !== id));
+  useEffect(() => {
+    const node = loaderRef.current;
+    if (!node || loading || loadingMore || !hasNextPage) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) {
+        loadPermits({ pageNumber: page + 1, append: true });
+      }
+    }, { rootMargin: '240px' });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, loadPermits, loading, loadingMore, page]);
+
+  const handleRefresh = useCallback(() => {
+    loadPermits({ pageNumber: 1, append: false });
+  }, [loadPermits]);
+
+  const handleDelete = useCallback((id) => {
+    setPermits((prev) => prev.filter((p) => p.id !== id));
+  }, []);
 
   if (user?.approver_stages?.length) {
     return <ApproverDashboardPanel />;
@@ -182,7 +213,7 @@ export default function Dashboard() {
           </p> */}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={loadPermits} disabled={loading}
+          <button onClick={handleRefresh} disabled={loading}
             className="btn-ghost btn-md">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
@@ -216,11 +247,16 @@ export default function Dashboard() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {permits?.map(permit => (
-            <PermitCard key={permit.id} permit={permit} />
-          )) || <p>No permits found.</p>}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {permits?.map(permit => (
+              <PermitCard key={permit.id} permit={permit} onDelete={handleDelete} />
+            )) || <p>No permits found.</p>}
+          </div>
+          <div ref={loaderRef} className="flex justify-center py-8">
+            {loadingMore && <Spinner size={6} />}
+          </div>
+        </>
       )}
     </>
   );

@@ -16,6 +16,43 @@ from apps.permits.models import Approver
 from apps.permits.services import attach_permit_pdf
 
 
+DEFAULT_PAGE_SIZE = 10
+MAX_PAGE_SIZE = 50
+
+
+def _pagination_params(request):
+    try:
+        page = max(int(request.query_params.get('page', 1)), 1)
+    except (TypeError, ValueError):
+        page = 1
+
+    try:
+        page_size = int(request.query_params.get('page_size', DEFAULT_PAGE_SIZE))
+    except (TypeError, ValueError):
+        page_size = DEFAULT_PAGE_SIZE
+
+    page_size = min(max(page_size, 1), MAX_PAGE_SIZE)
+    offset = (page - 1) * page_size
+    return page, page_size, offset
+
+
+def _paginated_response(queryset, serializer_class, request, result_key='permits', extra=None):
+    page, page_size, offset = _pagination_params(request)
+    total = queryset.count()
+    items = list(queryset[offset:offset + page_size])
+    serializer = serializer_class(items, many=True, context={'request': request})
+    payload = {
+        result_key: serializer.data,
+        'count': total,
+        'page': page,
+        'page_size': page_size,
+        'has_next': offset + page_size < total,
+    }
+    if extra:
+        payload.update(extra)
+    return Response(payload)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def next_serial_number(request):
@@ -32,9 +69,8 @@ def next_serial_number(request):
 @permission_classes([IsAuthenticated])
 def permit_list(request):
     """Return the authenticated user's permits, newest first."""
-    permits = WorkPermit.objects.filter(user=request.user).select_related('user')
-    serializer = WorkPermitListSerializer(permits, many=True, context={'request': request})
-    return Response(serializer.data)
+    permits = WorkPermit.objects.filter(user=request.user).select_related('user').order_by('-created_at')
+    return _paginated_response(permits, WorkPermitListSerializer, request)
 
 
 @api_view(['POST'])

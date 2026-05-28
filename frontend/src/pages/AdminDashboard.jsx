@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, BarChart3, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -14,15 +14,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loggingOut, setLoggingOut] = useState(false);
 
-  useEffect(() => {
-    if (!localStorage.getItem('admin_id')) {
-      navigate('/admin/login', { replace: true });
-      return;
-    }
-    fetchStats();
-  }, [navigate]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await client.get('/permits/admin/dashboard/');
       setStats(response.data);
@@ -31,7 +23,15 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!localStorage.getItem('admin_id')) {
+      navigate('/admin/login', { replace: true });
+      return;
+    }
+    fetchStats();
+  }, [fetchStats, navigate]);
 
   const handleLogout = async () => {
     if (!window.confirm('Log out of the admin dashboard?')) return;
@@ -111,9 +111,13 @@ export default function AdminDashboard() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'dashboard' && stats && (
-          <div>
-            <AdminPermitStatsExplorer onDashboardLoaded={setStats} />
+        {stats && (
+          <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
+            <AdminPermitStatsExplorer
+              onDashboardLoaded={setStats}
+              canDeleteApproved
+              initialDashboardData={stats}
+            />
 
             {/* Approver Stats */}
             <div className="mt-8">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, ClipboardCheck, RefreshCw, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,32 +8,44 @@ import { Breadcrumb } from '../components/Layout';
 import { Spinner } from '../components/FormElements';
 import SignatureUploadCard from '../components/approver/SignatureUploadCard';
 
+const PERMIT_PAGE_SIZE = 10;
+
 export default function ApprovalDashboard() {
   const navigate = useNavigate();
   const [permits, setPermits] = useState([]);
   const [approverStages, setApproverStages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [page, setPage] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const loaderRef = useRef(null);
 
-  const fetchPermits = useCallback(async ({ silent = false } = {}) => {
+  const fetchPermits = useCallback(async ({ silent = false, pageNumber = 1, append = false } = {}) => {
     if (startDate && endDate && startDate > endDate) {
       toast.error('End date cannot be before start date.', { id: 'approver-date-error' });
       return;
     }
-    if (!silent) setLoading(true);
+    if (append) setLoadingMore(true);
+    else if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
       const response = await client.get('/permits/approvals/pending/', {
         params: {
+          page: pageNumber,
+          page_size: PERMIT_PAGE_SIZE,
           ...(startDate ? { start_date: startDate } : {}),
           ...(endDate ? { end_date: endDate } : {}),
         },
       });
-      setPermits(response.data.permits || []);
+      const nextPermits = response.data.permits || [];
+      setPermits((prev) => (append ? [...prev, ...nextPermits] : nextPermits));
       setApproverStages(response.data.approver_stages || []);
-      if (silent) toast.success('Queue refreshed.');
+      setHasNextPage(Boolean(response.data.has_next));
+      setPage(response.data.page || pageNumber);
+      if (silent && !append) toast.success('Queue refreshed.');
     } catch (error) {
       if (error.response?.status === 403) {
         toast.error('You are not configured as an approver.');
@@ -44,11 +56,30 @@ export default function ApprovalDashboard() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   }, [navigate, startDate, endDate]);
 
   useEffect(() => {
-    fetchPermits();
+    fetchPermits({ pageNumber: 1 });
+  }, [fetchPermits]);
+
+  useEffect(() => {
+    const node = loaderRef.current;
+    if (!node || loading || loadingMore || refreshing || !hasNextPage) return undefined;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) {
+        fetchPermits({ pageNumber: page + 1, append: true });
+      }
+    }, { rootMargin: '240px' });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fetchPermits, hasNextPage, loading, loadingMore, page, refreshing]);
+
+  const refreshFirstPage = useCallback((silent = true) => {
+    fetchPermits({ silent, pageNumber: 1 });
   }, [fetchPermits]);
 
   const stageLabel = approverStages.length === 1
@@ -108,7 +139,7 @@ export default function ApprovalDashboard() {
             />
           </div>
           <button
-            onClick={() => fetchPermits({ silent: true })}
+            onClick={() => refreshFirstPage(true)}
             disabled={refreshing}
             className="btn-secondary btn-sm"
           >
@@ -144,10 +175,13 @@ export default function ApprovalDashboard() {
             <ApprovalCard
               key={permit.id}
               permit={permit}
-              onApprove={() => fetchPermits({ silent: true })}
-              onReject={() => fetchPermits({ silent: true })}
+              onApprove={() => refreshFirstPage(true)}
+              onReject={() => refreshFirstPage(true)}
             />
           ))}
+          <div ref={loaderRef} className="col-span-full flex justify-center py-8">
+            {loadingMore && <Spinner size={6} />}
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-16 text-center">
@@ -157,7 +191,7 @@ export default function ApprovalDashboard() {
             No permits are currently waiting for your review as a {stageLabel} approver.
           </p>
           <button
-            onClick={() => fetchPermits({ silent: true })}
+            onClick={() => refreshFirstPage(true)}
             disabled={refreshing}
             className="btn-ghost btn-sm mt-6 mx-auto"
           >
