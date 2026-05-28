@@ -8,7 +8,7 @@ import { Breadcrumb } from '../components/Layout';
 import { Spinner } from '../components/FormElements';
 import SignatureUploadCard from '../components/approver/SignatureUploadCard';
 
-const PERMIT_PAGE_SIZE = 10;
+const PERMIT_PAGE_SIZE = 9;
 
 export default function ApprovalDashboard() {
   const navigate = useNavigate();

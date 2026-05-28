@@ -14,7 +14,7 @@ const STAT_CONFIG = [
   { key: 'rejected', label: 'Reinitiated', color: 'bg-red-100 text-red-900' },
 ];
 
-const PERMIT_PAGE_SIZE = 10;
+const PERMIT_PAGE_SIZE = 9;
 
 function StatSelector({ activeKey, stats, onSelect }) {
   return (

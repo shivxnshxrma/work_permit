@@ -11,7 +11,7 @@ import { Breadcrumb } from '../components/Layout';
 import { Spinner, StatusBadge, EmptyState } from '../components/FormElements';
 import ApproverDashboardPanel from '../components/approver/ApproverDashboardPanel';
 
-const PERMIT_PAGE_SIZE = 10;
+const PERMIT_PAGE_SIZE = 9;
 
 function PermitCard({ permit, onDelete }) {
   const navigate = useNavigate();
