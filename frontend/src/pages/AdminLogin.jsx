@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, LogIn } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AppLogo, AuthFooter, Field, Spinner } from '../components/FormElements';
-import client from '../api/client';
 import useAuthStore from '../store/authStore';
 import { authAPI } from '../api/client';
+import { STORAGE_KEYS } from '../utils/constants';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -34,9 +34,10 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       const response = await authAPI.login({ email: form.email, password: form.password });
-      persistSession(response.data.user);
-      localStorage.setItem('admin_id', response.data.user_id);
-      localStorage.setItem('admin_email', response.data.email);
+      const user = response.data.user;
+      persistSession(user);
+      localStorage.setItem(STORAGE_KEYS.ADMIN_ID, String(user.id));
+      localStorage.setItem(STORAGE_KEYS.ADMIN_EMAIL, user.email);
       toast.success('Admin access granted!');
       navigate('/admin/dashboard');
     } catch (error) {

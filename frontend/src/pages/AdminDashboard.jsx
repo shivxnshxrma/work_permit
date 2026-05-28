@@ -6,6 +6,26 @@ import client from '../api/client';
 import ApproversManager from '../components/ApproversManager';
 import AdminPermitStatsExplorer from '../components/admin/AdminPermitStatsExplorer';
 import { AppLogo, PageLoader, Spinner } from '../components/FormElements';
+import { STORAGE_KEYS } from '../utils/constants';
+
+const clearAdminSession = () => {
+  localStorage.removeItem(STORAGE_KEYS.USER);
+  localStorage.removeItem(STORAGE_KEYS.ADMIN_ID);
+  localStorage.removeItem(STORAGE_KEYS.ADMIN_EMAIL);
+};
+
+const hasValidAdminSession = () => {
+  const user = localStorage.getItem(STORAGE_KEYS.USER);
+  const adminId = localStorage.getItem(STORAGE_KEYS.ADMIN_ID);
+  const adminEmail = localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL);
+  return Boolean(
+    user &&
+    adminId &&
+    adminId !== 'undefined' &&
+    adminEmail &&
+    adminEmail !== 'undefined'
+  );
+};
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -13,40 +33,68 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loggingOut, setLoggingOut] = useState(false);
+  const [sessionValid, setSessionValid] = useState(hasValidAdminSession);
 
   const fetchStats = useCallback(async () => {
     try {
       const response = await client.get('/permits/admin/dashboard/');
       setStats(response.data);
     } catch (error) {
+      if ([401, 403].includes(error.response?.status)) {
+        clearAdminSession();
+        setSessionValid(false);
+        navigate('/admin/login', { replace: true });
+        return;
+      }
       toast.error('Failed to load dashboard stats.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
-    if (!localStorage.getItem('admin_id')) {
+    if (!hasValidAdminSession()) {
+      clearAdminSession();
+      setSessionValid(false);
       navigate('/admin/login', { replace: true });
       return;
     }
     fetchStats();
   }, [fetchStats, navigate]);
 
+  useEffect(() => {
+    const checkSession = () => {
+      if (hasValidAdminSession()) return;
+      clearAdminSession();
+      setSessionValid(false);
+      navigate('/admin/login', { replace: true });
+    };
+
+    window.addEventListener('focus', checkSession);
+    window.addEventListener('storage', checkSession);
+    const intervalId = window.setInterval(checkSession, 1000);
+
+    return () => {
+      window.removeEventListener('focus', checkSession);
+      window.removeEventListener('storage', checkSession);
+      window.clearInterval(intervalId);
+    };
+  }, [navigate]);
+
   const handleLogout = async () => {
     if (!window.confirm('Log out of the admin dashboard?')) return;
     setLoggingOut(true);
     try {
       try { await client.post('/auth/logout/'); } catch { /* ignore */ }
-      localStorage.removeItem('user');
-      localStorage.removeItem('admin_id');
-      localStorage.removeItem('admin_email');
+      clearAdminSession();
       toast.success('Logged out.');
       navigate('/admin/login');
     } finally {
       setLoggingOut(false);
     }
   };
+
+  if (!sessionValid) return null;
 
   if (loading) {
     return <div className="min-h-screen"><PageLoader label="Loading admin dashboard..." /></div>;

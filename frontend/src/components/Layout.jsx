@@ -6,6 +6,15 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { AppLogo, Spinner } from './FormElements';
+import { STORAGE_KEYS } from '../utils/constants';
+
+const hasStoredAdminSession = () => {
+  if (typeof window === 'undefined') return false;
+  const user = localStorage.getItem(STORAGE_KEYS.USER);
+  const adminId = localStorage.getItem(STORAGE_KEYS.ADMIN_ID);
+  const adminEmail = localStorage.getItem(STORAGE_KEYS.ADMIN_EMAIL);
+  return Boolean(user && adminId && adminId !== 'undefined' && adminEmail && adminEmail !== 'undefined');
+};
 
 // ── Route guard ───────────────────────────────────────────────────────────
 export function ProtectedRoute() {
@@ -20,12 +29,12 @@ export function GuestRoute() {
 
 export function AdminProtectedRoute() {
   const user = useAuthStore((s) => s.user);
-  const hasAdminSession = typeof window !== 'undefined' && !!localStorage.getItem('admin_id');
+  const hasAdminSession = hasStoredAdminSession();
   return user && hasAdminSession ? <Outlet /> : <Navigate to="/admin/login" replace />;
 }
 
 export function AdminGuestRoute() {
-  const hasAdminSession = typeof window !== 'undefined' && !!localStorage.getItem('admin_id');
+  const hasAdminSession = hasStoredAdminSession();
   return hasAdminSession ? <Navigate to="/admin/dashboard" replace /> : <Outlet />;
 }
 
